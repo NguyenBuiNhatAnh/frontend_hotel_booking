@@ -1,0 +1,26 @@
+:root {
+  /* Màu chủ đạo (Primary) - Thường là xanh dương hoặc cam cho ngành du lịch */
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #dbeafe;
+
+  /* Màu phụ (Secondary) - Dùng cho các nút phụ, tag */
+  --secondary: #64748b;
+
+  /* Trạng thái */
+  --success: #22c55e; /* Duyệt, thành công, check-in */
+  --danger: #ef4444;  /* Hủy, xóa, lỗi */
+  --warning: #f59e0b; /* Chờ xác nhận */
+  --info: #0ea5e9;    /* Thông tin chung */
+
+  /* Màu nền & Chữ */
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+
+  /* Bo góc & Đổ bóng */
+  --radius: 8px;
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
