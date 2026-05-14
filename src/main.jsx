@@ -3,14 +3,18 @@ import App from './App.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './contexts/AuthContext.jsx';
+import { HotelProvider } from './contexts/HotelContext.jsx';
 
 import 'react-toastify/dist/ReactToastify.css';
 
 createRoot(document.getElementById('root')).render(
-  <AuthProvider>
-    <ToastContainer />
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </AuthProvider>  // 👈 sửa ở đây
+  <HotelProvider>
+    <AuthProvider>
+      <ToastContainer />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </AuthProvider>
+  </HotelProvider>
+  // 👈 sửa ở đây
 );

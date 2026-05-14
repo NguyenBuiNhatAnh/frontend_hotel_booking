@@ -34,34 +34,32 @@ const ALLOWED_TRANSITIONS = {
 
 export default function BookingsManager() {
   const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState('today'); // 'today' or 'search'
+  const [activeTab, setActiveTab] = useState('all'); // 'all' or 'today'
   const [bookings, setBookings] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Luồng 1 (today)
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [todayStatus, setTodayStatus] = useState('');
-
-  // Luồng 2 (search)
-  const [keyword, setKeyword] = useState('');
-  const [searchStatus, setSearchStatus] = useState('');
-  const [searchTrigger, setSearchTrigger] = useState('');
-
-  // Pagination cho từng tab
-  const [pageToday, setPageToday] = useState(1);
-  const [pageSearch, setPageSearch] = useState(1);
+  // Tab "Tất cả"
+  const [allStatus, setAllStatus] = useState('');
+  const [pageAll, setPageAll] = useState(1);
   const limit = 10;
 
-  const fetchTodayBookings = useCallback(async () => {
+  // Tab "Hôm nay"
+  const [todayDate, setTodayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [todayStatus, setTodayStatus] = useState('');
+  const [todaySearchKeyword, setTodaySearchKeyword] = useState('');
+  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [pageToday, setPageToday] = useState(1);
+  const [todayPagination, setTodayPagination] = useState(null);
+
+  // Fetch tất cả booking (có lọc status)
+  const fetchAllBookings = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page: pageToday, limit };
-      if (date) params.date = date;
-      if (todayStatus) params.status = todayStatus;
-
+      const params = { page: pageAll, limit };
+      if (allStatus) params.status = allStatus;
       const res = await axiosInstance.get('/bookings/manage', {
         headers: { Authorization: `Bearer ${token}` },
         params
@@ -73,42 +71,63 @@ export default function BookingsManager() {
     } finally {
       setLoading(false);
     }
-  }, [token, pageToday, date, todayStatus]);
+  }, [token, pageAll, allStatus]);
 
-  const fetchSearchBookings = useCallback(async () => {
-    if (!searchTrigger.trim()) return;
+  // Fetch booking check-in hôm nay (hoặc ngày được chọn)
+  const fetchTodayBookings = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { keyword: searchTrigger, page: pageSearch, limit };
-      if (searchStatus) params.status = searchStatus;
-
-      const res = await axiosInstance.get('/bookings/manage/search', {
+      const params = { page: pageToday, limit };
+      if (todayDate) params.date = todayDate;
+      if (todayStatus) params.status = todayStatus;
+      const res = await axiosInstance.get('/bookings/manager/today', {
         headers: { Authorization: `Bearer ${token}` },
         params
       });
-      setBookings(res.data.data.bookings);
-      setPagination(res.data.data.pagination);
+      const bookingsData = res.data.data.bookings;
+      setBookings(bookingsData);
+      setTodayPagination(res.data.data.pagination);
+      setFilteredBookings(bookingsData);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Tìm kiếm thất bại');
+      toast.error(err.response?.data?.message || 'Không thể tải booking hôm nay');
     } finally {
       setLoading(false);
     }
-  }, [token, searchTrigger, pageSearch, searchStatus]);
+  }, [token, pageToday, todayDate, todayStatus]);
 
+  // Lọc client‑side theo keyword (email/tên/SĐT) trong tab "Hôm nay"
   useEffect(() => {
-    if (activeTab === 'today') {
+    if (activeTab === 'today' && bookings.length > 0) {
+      const keyword = todaySearchKeyword.trim().toLowerCase();
+      if (!keyword) {
+        setFilteredBookings(bookings);
+      } else {
+        const filtered = bookings.filter(b =>
+          b.guestInfo?.email?.toLowerCase().includes(keyword) ||
+          b.guestInfo?.phone?.includes(keyword) ||
+          `${b.guestInfo?.firstName} ${b.guestInfo?.lastName}`.toLowerCase().includes(keyword)
+        );
+        setFilteredBookings(filtered);
+      }
+    }
+  }, [todaySearchKeyword, bookings, activeTab]);
+
+  // Gọi API khi chuyển tab hoặc thay đổi bộ lọc
+  useEffect(() => {
+    if (activeTab === 'all') {
+      fetchAllBookings();
+    } else if (activeTab === 'today') {
       fetchTodayBookings();
     }
-  }, [activeTab, fetchTodayBookings]);
+  }, [activeTab, fetchAllBookings, fetchTodayBookings]);
 
-  useEffect(() => {
-    if (activeTab === 'search' && searchTrigger) {
-      fetchSearchBookings();
-    }
-  }, [activeTab, searchTrigger, fetchSearchBookings]);
+  const handleAllStatusChange = (e) => {
+    setAllStatus(e.target.value);
+    setPageAll(1);
+  };
 
-  const handleDateChange = (e) => {
-    setDate(e.target.value);
+  const handleTodayDateChange = (e) => {
+    setTodayDate(e.target.value);
     setPageToday(1);
   };
 
@@ -117,46 +136,35 @@ export default function BookingsManager() {
     setPageToday(1);
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (!keyword.trim()) {
-      toast.warning('Vui lòng nhập từ khóa');
-      return;
-    }
-    setSearchTrigger(keyword);
-    setPageSearch(1);
-  };
-
   const handleStatusUpdate = async (bookingId, newStatus) => {
-    if (!window.confirm(`Xác nhận chuyển trạng thái thành "${STATUS_LABELS[newStatus]}"?`)) return;
-    setUpdatingStatus(true);
-    try {
-      await axiosInstance.patch(
-        `/bookings/manager/${bookingId}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success('Cập nhật trạng thái thành công');
-      if (activeTab === 'today') fetchTodayBookings();
-      else fetchSearchBookings();
-      if (selectedBooking?._id === bookingId) setSelectedBooking(null);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Cập nhật thất bại');
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
+  if (!window.confirm(`Xác nhận chuyển trạng thái thành "${STATUS_LABELS[newStatus]}"?`)) return;
+  setUpdatingStatus(true);
+  try {
+    // Gửi status qua query parameter
+    await axiosInstance.patch(
+      `/bookings/manager/${bookingId}/status?status=${newStatus}`,
+      {}, // body rỗng
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    toast.success('Cập nhật trạng thái thành công');
+    if (activeTab === 'all') fetchAllBookings();
+    else fetchTodayBookings();
+    if (selectedBooking?._id === bookingId) setSelectedBooking(null);
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Cập nhật thất bại');
+  } finally {
+    setUpdatingStatus(false);
+  }
+};
 
   const viewBookingDetail = async (bookingId) => {
-    // Giả định có endpoint lấy chi tiết: GET /bookings/manager/:id
-    // Nếu chưa có, dùng dữ liệu đã có trong bookings array
     try {
       const res = await axiosInstance.get(`/bookings/manager/${bookingId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSelectedBooking(res.data.data);
     } catch (err) {
-      // Fallback: tìm trong danh sách hiện tại
+      // Fallback: dùng dữ liệu đang có
       const found = bookings.find(b => b._id === bookingId);
       if (found) setSelectedBooking(found);
       else toast.error('Không thể tải chi tiết booking');
@@ -187,21 +195,38 @@ export default function BookingsManager() {
     </tr>
   );
 
+  const displayBookings = activeTab === 'today' ? filteredBookings : bookings;
+  const currentPagination = activeTab === 'today' ? todayPagination : pagination;
+
   return (
     <div className="bookings-manager">
       <div className="bookings-header">
         <h2>Quản lý đặt phòng</h2>
         <div className="tabs">
-          <button className={`tab ${activeTab === 'today' ? 'active' : ''}`} onClick={() => setActiveTab('today')}>📅 Hôm nay / theo ngày</button>
-          <button className={`tab ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>🔍 Tìm kiếm</button>
+          <button className={`tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>📋 Tất cả booking</button>
+          <button className={`tab ${activeTab === 'today' ? 'active' : ''}`} onClick={() => setActiveTab('today')}>📅 Hôm nay</button>
         </div>
       </div>
+
+      {activeTab === 'all' && (
+        <div className="filters all-filters">
+          <div className="filter-group">
+            <label>Trạng thái:</label>
+            <select value={allStatus} onChange={handleAllStatusChange}>
+              <option value="">Tất cả</option>
+              {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'today' && (
         <div className="filters today-filters">
           <div className="filter-group">
             <label>Ngày nhận phòng:</label>
-            <input type="date" value={date} onChange={handleDateChange} />
+            <input type="date" value={todayDate} onChange={handleTodayDateChange} />
           </div>
           <div className="filter-group">
             <label>Trạng thái:</label>
@@ -212,28 +237,14 @@ export default function BookingsManager() {
               ))}
             </select>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'search' && (
-        <div className="filters search-filters">
-          <form onSubmit={handleSearchSubmit} className="search-form">
+          <div className="filter-group search-group">
+            <label>Tìm theo email/tên/SĐT:</label>
             <input
               type="text"
-              placeholder="Mã booking, tên khách, SĐT, email..."
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Nhập email, tên hoặc số điện thoại"
+              value={todaySearchKeyword}
+              onChange={(e) => setTodaySearchKeyword(e.target.value)}
             />
-            <button type="submit">Tìm kiếm</button>
-          </form>
-          <div className="filter-group">
-            <label>Lọc theo trạng thái:</label>
-            <select value={searchStatus} onChange={(e) => setSearchStatus(e.target.value)}>
-              <option value="">Tất cả</option>
-              {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
-              ))}
-            </select>
           </div>
         </div>
       )}
@@ -254,25 +265,25 @@ export default function BookingsManager() {
           <tbody>
             {loading ? (
               <tr><td colSpan="7" className="loading-cell">Đang tải...</td></tr>
-            ) : bookings.length === 0 ? (
+            ) : displayBookings.length === 0 ? (
               <tr><td colSpan="7" className="empty-cell">Không có booking nào</td></tr>
             ) : (
-              bookings.map(renderBookingRow)
+              displayBookings.map(renderBookingRow)
             )}
           </tbody>
         </table>
       </div>
 
-      {pagination && pagination.totalPages > 1 && (
+      {currentPagination && currentPagination.totalPages > 1 && (
         <div className="pagination">
           <button
-            disabled={pagination.page === 1}
-            onClick={() => activeTab === 'today' ? setPageToday(p => p-1) : setPageSearch(p => p-1)}
+            disabled={currentPagination.page === 1}
+            onClick={() => activeTab === 'all' ? setPageAll(p => p-1) : setPageToday(p => p-1)}
           >← Trước</button>
-          <span>Trang {pagination.page} / {pagination.totalPages}</span>
+          <span>Trang {currentPagination.page} / {currentPagination.totalPages}</span>
           <button
-            disabled={pagination.page === pagination.totalPages}
-            onClick={() => activeTab === 'today' ? setPageToday(p => p+1) : setPageSearch(p => p+1)}
+            disabled={currentPagination.page === currentPagination.totalPages}
+            onClick={() => activeTab === 'all' ? setPageAll(p => p+1) : setPageToday(p => p+1)}
           >Tiếp →</button>
         </div>
       )}

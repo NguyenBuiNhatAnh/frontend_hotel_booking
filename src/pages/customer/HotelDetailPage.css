@@ -366,3 +366,33 @@
   align-items: center;
   gap: 8px;
 }
+
+.selected-section {
+  margin-top: 20px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.invoice-modal {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  width: 500px;
+  max-width: 90%;
+}
+
+.invoice-warning {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+}

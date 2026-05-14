@@ -40,7 +40,16 @@ export const createBooking = async (hotelId, bookingData, token) => {
   return res.data.data;
 };
 
-// Tuỳ chọn: lấy chi tiết booking sau khi đặt thành công
+// Lấy danh sách bookings của user (dùng cho trang my-bookings)
+export const getUserBookings = async (token, params = {}) => {
+  const res = await axiosInstance.get('/bookings/my-bookings', {
+    headers: { Authorization: `Bearer ${token}` },
+    params
+  });
+  return res.data.data;
+};
+
+// Lấy chi tiết một booking
 export const getBookingDetail = async (bookingId, token) => {
   const res = await axiosInstance.get(`/bookings/${bookingId}`, {
     headers: { Authorization: `Bearer ${token}` }
