@@ -1,4 +1,3 @@
-// pages/manager/components/BookingsManager.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import axiosInstance from '../../../services/axiosInstance';
@@ -34,27 +33,26 @@ const ALLOWED_TRANSITIONS = {
 
 export default function BookingsManager() {
   const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState('all'); // 'all' or 'today'
+  const [activeTab, setActiveTab] = useState('all');
   const [bookings, setBookings] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Tab "Tất cả"
+  // Filter states
   const [allStatus, setAllStatus] = useState('');
   const [pageAll, setPageAll] = useState(1);
   const limit = 10;
 
-  // Tab "Hôm nay"
-  const [todayDate, setTodayDate] = useState(new Date().toISOString().slice(0, 10));
+  // Today states
+  const [todayDate, setTodayDate] = useState(new Date().toISOString().slice(0,10));
   const [todayStatus, setTodayStatus] = useState('');
-  const [todaySearchKeyword, setTodaySearchKeyword] = useState('');
-  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [todaySearch, setTodaySearch] = useState('');
+  const [filteredToday, setFilteredToday] = useState([]);
   const [pageToday, setPageToday] = useState(1);
   const [todayPagination, setTodayPagination] = useState(null);
 
-  // Fetch tất cả booking (có lọc status)
   const fetchAllBookings = useCallback(async () => {
     setLoading(true);
     try {
@@ -64,16 +62,16 @@ export default function BookingsManager() {
         headers: { Authorization: `Bearer ${token}` },
         params
       });
-      setBookings(res.data.data.bookings);
+      console.log('All bookings response:', res.data);
+      setBookings(res.data.data.bookings || []);
       setPagination(res.data.data.pagination);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Không thể tải danh sách booking');
+      toast.error(err.response?.data?.message || 'Lỗi tải booking');
     } finally {
       setLoading(false);
     }
   }, [token, pageAll, allStatus]);
 
-  // Fetch booking check-in hôm nay (hoặc ngày được chọn)
   const fetchTodayBookings = useCallback(async () => {
     setLoading(true);
     try {
@@ -84,118 +82,93 @@ export default function BookingsManager() {
         headers: { Authorization: `Bearer ${token}` },
         params
       });
-      const bookingsData = res.data.data.bookings;
-      setBookings(bookingsData);
+      console.log('Today bookings response:', res.data);
+      const data = res.data.data.bookings || [];
+      setBookings(data);
       setTodayPagination(res.data.data.pagination);
-      setFilteredBookings(bookingsData);
+      setFilteredToday(data);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Không thể tải booking hôm nay');
+      toast.error(err.response?.data?.message || 'Lỗi tải booking hôm nay');
     } finally {
       setLoading(false);
     }
   }, [token, pageToday, todayDate, todayStatus]);
 
-  // Lọc client‑side theo keyword (email/tên/SĐT) trong tab "Hôm nay"
   useEffect(() => {
-    if (activeTab === 'today' && bookings.length > 0) {
-      const keyword = todaySearchKeyword.trim().toLowerCase();
-      if (!keyword) {
-        setFilteredBookings(bookings);
-      } else {
-        const filtered = bookings.filter(b =>
-          b.guestInfo?.email?.toLowerCase().includes(keyword) ||
-          b.guestInfo?.phone?.includes(keyword) ||
-          `${b.guestInfo?.firstName} ${b.guestInfo?.lastName}`.toLowerCase().includes(keyword)
-        );
-        setFilteredBookings(filtered);
-      }
-    }
-  }, [todaySearchKeyword, bookings, activeTab]);
-
-  // Gọi API khi chuyển tab hoặc thay đổi bộ lọc
-  useEffect(() => {
-    if (activeTab === 'all') {
-      fetchAllBookings();
-    } else if (activeTab === 'today') {
-      fetchTodayBookings();
-    }
-  }, [activeTab, fetchAllBookings, fetchTodayBookings]);
-
-  const handleAllStatusChange = (e) => {
-    setAllStatus(e.target.value);
-    setPageAll(1);
-  };
-
-  const handleTodayDateChange = (e) => {
-    setTodayDate(e.target.value);
-    setPageToday(1);
-  };
-
-  const handleTodayStatusChange = (e) => {
-    setTodayStatus(e.target.value);
-    setPageToday(1);
-  };
-
-  const handleStatusUpdate = async (bookingId, newStatus) => {
-  if (!window.confirm(`Xác nhận chuyển trạng thái thành "${STATUS_LABELS[newStatus]}"?`)) return;
-  setUpdatingStatus(true);
-  try {
-    // Gửi status qua query parameter
-    await axiosInstance.patch(
-      `/bookings/manager/${bookingId}/status?status=${newStatus}`,
-      {}, // body rỗng
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    toast.success('Cập nhật trạng thái thành công');
     if (activeTab === 'all') fetchAllBookings();
     else fetchTodayBookings();
-    if (selectedBooking?._id === bookingId) setSelectedBooking(null);
-  } catch (err) {
-    toast.error(err.response?.data?.message || 'Cập nhật thất bại');
-  } finally {
-    setUpdatingStatus(false);
-  }
-};
+  }, [activeTab, fetchAllBookings, fetchTodayBookings]);
+
+  useEffect(() => {
+    if (activeTab === 'today' && bookings.length) {
+      const kw = todaySearch.trim().toLowerCase();
+      if (!kw) setFilteredToday(bookings);
+      else {
+        const filtered = bookings.filter(b =>
+          b.guestInfo?.email?.toLowerCase().includes(kw) ||
+          b.guestInfo?.phone?.includes(kw) ||
+          `${b.guestInfo?.firstName} ${b.guestInfo?.lastName}`.toLowerCase().includes(kw)
+        );
+        setFilteredToday(filtered);
+      }
+    }
+  }, [todaySearch, bookings, activeTab]);
+
+  const handleStatusUpdate = async (bookingId, newStatus) => {
+    if (!window.confirm(`Xác nhận chuyển sang "${STATUS_LABELS[newStatus]}"?`)) return;
+    setUpdatingStatus(true);
+    try {
+      await axiosInstance.patch(
+        `/bookings/manager/${bookingId}/status?status=${newStatus}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Cập nhật thành công');
+      if (activeTab === 'all') fetchAllBookings();
+      else fetchTodayBookings();
+      if (selectedBooking?._id === bookingId) setSelectedBooking(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Cập nhật thất bại');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   const viewBookingDetail = async (bookingId) => {
     try {
       const res = await axiosInstance.get(`/bookings/manager/${bookingId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSelectedBooking(res.data.data);
+      console.log('Booking detail response:', res.data);
+      // Dữ liệu nằm ở res.data.data.status (theo backend)
+      setSelectedBooking(res.data.data.status);
     } catch (err) {
-      // Fallback: dùng dữ liệu đang có
       const found = bookings.find(b => b._id === bookingId);
       if (found) setSelectedBooking(found);
-      else toast.error('Không thể tải chi tiết booking');
+      else toast.error('Không thể tải chi tiết');
     }
   };
 
-  const formatDate = (iso) => new Date(iso).toLocaleDateString('vi-VN');
-  const formatPrice = (price) => price?.toLocaleString() + ' VND';
+  const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('vi-VN') : '—';
+  const formatPrice = (price) => price?.toLocaleString() + ' VND' || '0 VND';
 
-  const renderBookingRow = (booking) => (
-    <tr key={booking._id}>
-      <td>{booking._id.slice(-8)}</td>
-      <td>
-        {booking.guestInfo?.firstName} {booking.guestInfo?.lastName}
-        <div className="small-text">{booking.guestInfo?.phone}</div>
-      </td>
-      <td>{formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}</td>
-      <td>{booking.rooms?.map(r => r.roomTypeName).join(', ')}</td>
-      <td>{booking.totalPrice?.toLocaleString()}đ</td>
-      <td>
-        <span className="status-badge" style={{ background: STATUS_COLORS[booking.status] + '20', color: STATUS_COLORS[booking.status] }}>
-          {STATUS_LABELS[booking.status]}
-        </span>
-      </td>
-      <td>
-        <button className="btn-view" onClick={() => viewBookingDetail(booking._id)}>Chi tiết</button>
-      </td>
-    </tr>
-  );
+  const renderRow = (booking) => {
+    const statusLabel = STATUS_LABELS[booking.status] || booking.status;
+    const statusColor = STATUS_COLORS[booking.status] || '#6b7280';
+    return (
+      <tr key={booking._id}>
+        <td>{booking._id.slice(-8)}</td>
+        <td>{booking.guestInfo?.firstName} {booking.guestInfo?.lastName}<br/><small>{booking.guestInfo?.phone}</small></td>
+        <td>{formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}</td>
+        <td>{booking.rooms?.map(r => r.roomTypeName).join(', ')}</td>
+        <td>{booking.totalPrice?.toLocaleString()}đ</td>
+        <td><span style={{background:statusColor+'20', color:statusColor, padding:'2px 8px', borderRadius:'20px'}}>{statusLabel}</span></td>
+        <td><button className="btn-view" onClick={() => viewBookingDetail(booking._id)}>Chi tiết</button></td>
+      </tr>
+    );
+  };
 
-  const displayBookings = activeTab === 'today' ? filteredBookings : bookings;
+  const displayBookings = activeTab === 'today' ? filteredToday : bookings;
   const currentPagination = activeTab === 'today' ? todayPagination : pagination;
 
   return (
@@ -203,155 +176,66 @@ export default function BookingsManager() {
       <div className="bookings-header">
         <h2>Quản lý đặt phòng</h2>
         <div className="tabs">
-          <button className={`tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>📋 Tất cả booking</button>
-          <button className={`tab ${activeTab === 'today' ? 'active' : ''}`} onClick={() => setActiveTab('today')}>📅 Hôm nay</button>
+          <button className={`tab ${activeTab==='all'?'active':''}`} onClick={()=>setActiveTab('all')}>📋 Tất cả</button>
+          <button className={`tab ${activeTab==='today'?'active':''}`} onClick={()=>setActiveTab('today')}>📅 Hôm nay</button>
         </div>
       </div>
 
       {activeTab === 'all' && (
-        <div className="filters all-filters">
-          <div className="filter-group">
-            <label>Trạng thái:</label>
-            <select value={allStatus} onChange={handleAllStatusChange}>
-              <option value="">Tất cả</option>
-              {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <div className="filters"><select value={allStatus} onChange={e=>{setAllStatus(e.target.value); setPageAll(1);}}>
+          <option value="">Tất cả trạng thái</option>
+          {Object.entries(STATUS_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+        </select></div>
       )}
 
       {activeTab === 'today' && (
-        <div className="filters today-filters">
-          <div className="filter-group">
-            <label>Ngày nhận phòng:</label>
-            <input type="date" value={todayDate} onChange={handleTodayDateChange} />
-          </div>
-          <div className="filter-group">
-            <label>Trạng thái:</label>
-            <select value={todayStatus} onChange={handleTodayStatusChange}>
-              <option value="">Tất cả</option>
-              {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group search-group">
-            <label>Tìm theo email/tên/SĐT:</label>
-            <input
-              type="text"
-              placeholder="Nhập email, tên hoặc số điện thoại"
-              value={todaySearchKeyword}
-              onChange={(e) => setTodaySearchKeyword(e.target.value)}
-            />
-          </div>
+        <div className="filters today-filters" style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
+          <input type="date" value={todayDate} onChange={e=>{setTodayDate(e.target.value); setPageToday(1);}} />
+          <select value={todayStatus} onChange={e=>{setTodayStatus(e.target.value); setPageToday(1);}}>
+            <option value="">Tất cả</option>
+            {Object.entries(STATUS_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+          </select>
+          <input type="text" placeholder="Tìm theo tên/email/SĐT" value={todaySearch} onChange={e=>setTodaySearch(e.target.value)} style={{flex:1}} />
         </div>
       )}
 
       <div className="table-wrapper">
         <table className="bookings-table">
-          <thead>
-            <tr>
-              <th>Mã booking</th>
-              <th>Khách hàng</th>
-              <th>Ngày nhận - trả</th>
-              <th>Phòng</th>
-              <th>Tổng tiền</th>
-              <th>Trạng thái</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead><tr><th>Mã</th><th>Khách hàng</th><th>Ngày</th><th>Phòng</th><th>Tổng</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody>
-            {loading ? (
-              <tr><td colSpan="7" className="loading-cell">Đang tải...</td></tr>
-            ) : displayBookings.length === 0 ? (
-              <tr><td colSpan="7" className="empty-cell">Không có booking nào</td></tr>
-            ) : (
-              displayBookings.map(renderBookingRow)
-            )}
+            {loading && <tr><td colSpan="7">Đang tải...</td></tr>}
+            {!loading && displayBookings.length===0 && <tr><td colSpan="7">Không có booking</td></tr>}
+            {!loading && displayBookings.map(renderRow)}
           </tbody>
         </table>
       </div>
 
-      {currentPagination && currentPagination.totalPages > 1 && (
+      {currentPagination && currentPagination.totalPages>1 && (
         <div className="pagination">
-          <button
-            disabled={currentPagination.page === 1}
-            onClick={() => activeTab === 'all' ? setPageAll(p => p-1) : setPageToday(p => p-1)}
-          >← Trước</button>
+          <button disabled={currentPagination.page===1} onClick={()=>activeTab==='all'?setPageAll(p=>p-1):setPageToday(p=>p-1)}>Trước</button>
           <span>Trang {currentPagination.page} / {currentPagination.totalPages}</span>
-          <button
-            disabled={currentPagination.page === currentPagination.totalPages}
-            onClick={() => activeTab === 'all' ? setPageAll(p => p+1) : setPageToday(p => p+1)}
-          >Tiếp →</button>
+          <button disabled={currentPagination.page===currentPagination.totalPages} onClick={()=>activeTab==='all'?setPageAll(p=>p+1):setPageToday(p=>p+1)}>Sau</button>
         </div>
       )}
 
-      {/* Modal chi tiết booking */}
       {selectedBooking && (
-        <div className="modal-overlay" onClick={() => setSelectedBooking(null)}>
-          <div className="modal-content booking-detail" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Chi tiết booking</h3>
-              <button className="close-btn" onClick={() => setSelectedBooking(null)}>✕</button>
-            </div>
+        <div className="modal-overlay" onClick={()=>setSelectedBooking(null)}>
+          <div className="modal-content booking-detail" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header"><h3>Chi tiết booking</h3><button className="close-btn" onClick={()=>setSelectedBooking(null)}>✕</button></div>
             <div className="modal-body">
-              <div className="detail-row">
-                <strong>Mã booking:</strong> {selectedBooking._id}
-              </div>
-              <div className="detail-row">
-                <strong>Khách hàng:</strong> {selectedBooking.guestInfo?.firstName} {selectedBooking.guestInfo?.lastName}<br />
-                <span className="small">{selectedBooking.guestInfo?.email} - {selectedBooking.guestInfo?.phone}</span>
-              </div>
-              <div className="detail-row">
-                <strong>Ngày nhận:</strong> {formatDate(selectedBooking.checkInDate)}<br />
-                <strong>Ngày trả:</strong> {formatDate(selectedBooking.checkOutDate)}
-              </div>
-              <div className="detail-row">
-                <strong>Phòng đặt:</strong>
-                <ul>
-                  {selectedBooking.rooms?.map((r, idx) => (
-                    <li key={idx}>{r.roomTypeName} x {r.quantity} đêm: {formatPrice(r.totalPrice)}</li>
+              <p><strong>Mã:</strong> {selectedBooking._id}</p>
+              <p><strong>Khách:</strong> {selectedBooking.guestInfo?.firstName} {selectedBooking.guestInfo?.lastName}<br/>{selectedBooking.guestInfo?.email} - {selectedBooking.guestInfo?.phone}</p>
+              <p><strong>Nhận:</strong> {formatDate(selectedBooking.checkInDate)} &nbsp;|&nbsp; <strong>Trả:</strong> {formatDate(selectedBooking.checkOutDate)}</p>
+              <p><strong>Phòng:</strong></p>
+              <ul>{(selectedBooking.rooms||[]).map((r,i)=><li key={i}>{r.roomTypeName} x {r.quantity} = {formatPrice(r.totalPrice)}</li>)}</ul>
+              {selectedBooking.services?.length>0 && (<><p><strong>Dịch vụ:</strong></p><ul>{selectedBooking.services.map((s,i)=><li key={i}>{s.name} x {s.quantity} = {formatPrice(s.totalPrice)}</li>)}</ul></>)}
+              <p><strong>Tổng:</strong> {formatPrice(selectedBooking.totalPrice)}</p>
+              <p><strong>Trạng thái:</strong> <span style={{background:(STATUS_COLORS[selectedBooking.status]||'#6b7280')+'20', color:STATUS_COLORS[selectedBooking.status]||'#6b7280', padding:'2px 8px', borderRadius:'20px'}}>{STATUS_LABELS[selectedBooking.status]||selectedBooking.status}</span></p>
+              <div><strong>Cập nhật trạng thái:</strong>
+                <div style={{display:'flex', gap:'8px', marginTop:'8px'}}>
+                  {(ALLOWED_TRANSITIONS[selectedBooking.status]||[]).map(next=>(
+                    <button key={next} style={{background:STATUS_COLORS[next], border:'none', padding:'6px 12px', borderRadius:'20px', color:'white', cursor:'pointer'}} onClick={()=>handleStatusUpdate(selectedBooking._id, next)} disabled={updatingStatus}>Chuyển sang {STATUS_LABELS[next]}</button>
                   ))}
-                </ul>
-              </div>
-              {selectedBooking.services?.length > 0 && (
-                <div className="detail-row">
-                  <strong>Dịch vụ thêm:</strong>
-                  <ul>
-                    {selectedBooking.services.map((sv, idx) => (
-                      <li key={idx}>{sv.name} x {sv.quantity} : {formatPrice(sv.totalPrice)}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div className="detail-row total">
-                <strong>Tổng thanh toán:</strong> {formatPrice(selectedBooking.totalPrice)}
-              </div>
-              <div className="detail-row">
-                <strong>Trạng thái hiện tại:</strong>
-                <span className="status-badge" style={{ background: STATUS_COLORS[selectedBooking.status] + '20', color: STATUS_COLORS[selectedBooking.status] }}>
-                  {STATUS_LABELS[selectedBooking.status]}
-                </span>
-              </div>
-              <div className="detail-row">
-                <strong>Cập nhật trạng thái:</strong>
-                <div className="status-actions">
-                  {ALLOWED_TRANSITIONS[selectedBooking.status]?.map(nextStatus => (
-                    <button
-                      key={nextStatus}
-                      className="status-btn"
-                      style={{ background: STATUS_COLORS[nextStatus] }}
-                      onClick={() => handleStatusUpdate(selectedBooking._id, nextStatus)}
-                      disabled={updatingStatus}
-                    >
-                      Chuyển sang {STATUS_LABELS[nextStatus]}
-                    </button>
-                  ))}
-                  {ALLOWED_TRANSITIONS[selectedBooking.status]?.length === 0 && (
-                    <span className="no-action">Không thể thay đổi trạng thái</span>
-                  )}
                 </div>
               </div>
             </div>
