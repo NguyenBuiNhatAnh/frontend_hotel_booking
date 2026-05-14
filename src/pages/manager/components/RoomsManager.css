@@ -1,0 +1,304 @@
+.rooms-manager {
+  padding: 8px 0;
+}
+
+.rooms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rooms-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.btn-add-room {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-add-room:hover {
+  background: #2563eb;
+}
+
+.rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.room-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #eef2f6;
+}
+
+.room-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.room-card-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #1e293b;
+}
+
+.room-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.room-actions button {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.room-actions .btn-edit {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.room-actions .btn-delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.room-details {
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.room-details p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.room-amenities {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.amenity-tag {
+  background: #eef2ff;
+  color: #1e40af;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+}
+
+.room-images-section {
+  margin-top: 16px;
+  border-top: 1px solid #eef2f6;
+  padding-top: 16px;
+}
+
+.image-upload-area {
+  margin-bottom: 12px;
+}
+
+.upload-label {
+  background: #f1f5f9;
+  padding: 6px 16px;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-block;
+  border: 1px solid #e2e8f0;
+  transition: background 0.2s;
+}
+
+.upload-label:hover {
+  background: #e6edf5;
+}
+
+.uploading-text {
+  margin-left: 12px;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.room-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.room-image-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.room-image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.delete-img-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-img-btn:hover {
+  background: #ef4444;
+}
+
+.no-images {
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 8px;
+  font-size: 0.8rem;
+}
+
+/* Pagination (nếu cần) */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+.pagination button {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination button.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Modal form */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  width: 500px;
+  max-width: 90%;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.modal-content input,
+.modal-content textarea {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+}
+
+.modal-content .form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-content .form-row input {
+  flex: 1;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-actions button:first-child {
+  background: #3b82f6;
+  color: white;
+}
+
+.modal-actions button:last-child {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.rooms-loading,
+.rooms-empty {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+}

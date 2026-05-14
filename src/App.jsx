@@ -8,6 +8,7 @@ import MyBookingsPage from './pages/customer/MyBookingsPage.jsx';
 import RegisterHotelPage from './pages/customer/RegisterHotelPage.jsx';
 import AdminHotelsPage from './pages/admin/AdminHotelsPage.jsx';
 import AdminUsersPage from './pages/admin/AdminUsersPage.jsx';
+import ManagerDashboard from './pages/manager/ManagerDashboard.jsx';
 
 import './index.css';
 
@@ -38,6 +39,7 @@ function App() {
         <Route path="/my-bookings" element={<MyBookingsPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="register-hotel" element={<RegisterHotelPage />} />
+        <Route path="/manager" element={<ManagerDashboard />} />
       </Route>
       {/* Routes KHÔNG có Header & Footer */}
       <Route path="/admin/*" element={<AdminHotelsPage />} />

@@ -33,7 +33,7 @@ const Header = () => {
 
     if (role?.includes('hotel_manager')) {
       return (
-        <Link to="/manager/hotels">
+        <Link to="/manager">
           <button className="btn btn-primary">
             🏨 Quản lý khách sạn
           </button>
