@@ -63,6 +63,12 @@ function AuthPage() {
       // Lưu vào context (và localStorage)
       login(res.data.user, res.data.token);
 
+      if (res.data.user?.role?.[0] === 'admin') {
+        navigate('/admin');
+        toast.success('Đăng nhập thành công!');
+        return;
+      }
+
       toast.success('Đăng nhập thành công!');
       navigate('/'); // chuyển về trang chủ (chỉnh lại route nếu cần)
     } catch (error) {

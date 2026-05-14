@@ -1,0 +1,305 @@
+/* AdminUsersPage.css */
+.admin-users-page {
+  display: flex;
+  min-height: 100vh;
+  background: #f1f5f9;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Sidebar */
+.admin-users-sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.sidebar-logo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #fff;
+  padding: 0 24px 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-logo .accent { color: #3b82f6; }
+.admin-tag {
+  font-size: 0.6rem;
+  background: #3b82f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  flex: 1;
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.18s;
+}
+.sidebar-link:hover {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+.sidebar-link.active {
+  background: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+}
+.sidebar-back {
+  margin: 0 12px;
+  padding: 10px 14px;
+  color: #64748b;
+  text-decoration: none;
+}
+
+/* Main */
+.admin-users-main {
+  flex: 1;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-x: auto;
+}
+.admin-users-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.admin-users-topbar h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+.admin-users-topbar p {
+  color: #64748b;
+  margin: 0;
+}
+.logout-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.logout-btn:hover { background: #dc2626; }
+
+/* Filters */
+.admin-users-filters {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+}
+.filter-tab {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+}
+.filter-tab.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+.user-search {
+  display: flex;
+  gap: 8px;
+}
+.user-search input {
+  padding: 8px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  width: 220px;
+}
+.user-search button {
+  padding: 8px 18px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Table */
+.admin-users-table-wrap {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-users-table th {
+  padding: 13px 16px;
+  text-align: left;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.admin-users-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.user-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+.user-name {
+  font-weight: 600;
+}
+.user-email {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.user-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.user-badge-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+.user-badge-blocked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.user-action-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.user-btn-block {
+  background: #fef3c7;
+  color: #92400e;
+}
+.user-btn-unblock {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Pagination (giống cũ) */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.pagination button {
+  min-width: 36px;
+  height: 36px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pagination button.active {
+  background: #3b82f6;
+  color: #fff;
+}
+
+/* Modal */
+.user-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+.user-modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px 28px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+/* ... thêm các class modal khác tương tự AdminHotelsPage nhưng prefix user- */
+.user-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 12px;
+}
+.user-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.user-modal-btn-cancel, .user-modal-btn-confirm {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.user-modal-btn-cancel {
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+}
+.user-modal-btn-confirm {
+  border: none;
+  color: #fff;
+}
+.user-btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Loading & empty states (giống cũ) */
+.table-loading, .table-empty { text-align: center; padding: 60px; }
