@@ -35,6 +35,66 @@ const formatPrice = (n) => n?.toLocaleString('vi-VN') + '₫';
 const nightCount = (checkIn, checkOut) =>
   Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
 
+function ReviewModal({ booking, existingReview, onClose, onSubmit }) {
+  const [rating, setRating] = useState(existingReview?.rating || 5);
+  const [comment, setComment] = useState(existingReview?.comment || '');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!comment.trim()) return toast.error('Vui lòng nhập nhận xét');
+    setSubmitting(true);
+    await onSubmit({ rating, comment, reviewId: existingReview?._id });
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="booking-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2>{existingReview ? 'Cập nhật đánh giá' : 'Đánh giá khách sạn'}</h2>
+        <p style={{ color: '#888', marginBottom: 16 }}>{booking.hotel.name}</p>
+
+        {/* Stars */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span
+              key={star}
+              onClick={() => setRating(star)}
+              style={{ fontSize: 32, cursor: 'pointer', color: star <= rating ? '#f5a623' : '#ddd' }}
+            >
+              ★
+            </span>
+          ))}
+        </div>
+
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Chia sẻ trải nghiệm của bạn..."
+          rows={4}
+          style={{
+            width: '100%', padding: '10px 12px', borderRadius: 8,
+            border: '1px solid #e0e0dc', fontSize: 14, resize: 'vertical',
+            fontFamily: 'inherit', boxSizing: 'border-box'
+          }}
+        />
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <button className="btn-detail" onClick={onClose} style={{ flex: 1 }}>Hủy</button>
+          <button
+            className="btn-payment"
+            onClick={handleSubmit}
+            disabled={submitting}
+            style={{ flex: 1 }}
+          >
+            {submitting ? 'Đang gửi...' : existingReview ? 'Cập nhật' : 'Gửi đánh giá'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Modal chi tiết booking
 function BookingDetailModal({ booking, onClose }) {
   if (!booking) return null;
@@ -122,14 +182,15 @@ function BookingDetailModal({ booking, onClose }) {
 }
 
 // Thẻ booking (card)
-function BookingCard({ booking, onViewDetail, onCancel, onPayment, isCancelling, isPaying }) {
+function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isCancelling, isPaying }) {
   const hotel = booking.hotel;
   const mainImage = hotel.image?.[0]?.url;
   const status = STATUS_CONFIG[booking.status] || {};
   const nights = nightCount(booking.checkInDate, booking.checkOutDate);
   const canCancel = !['canceled', 'checked_in', 'checked_out', 'completed'].includes(booking.status);
-  const canPay = booking.status === 'pending' && booking.paymentStatus !== 'paid' && 
-                 booking.expiredAt && new Date(booking.expiredAt) > new Date();
+  const canPay = booking.status === 'pending' && booking.paymentStatus !== 'paid' &&
+    booking.expiredAt && new Date(booking.expiredAt) > new Date();
+  const canReview = booking.status === 'completed';  // ✅ thêm dòng này
 
   return (
     <div className={`booking-card ${booking.status === 'canceled' ? 'canceled' : ''}`}>
@@ -175,6 +236,13 @@ function BookingCard({ booking, onViewDetail, onCancel, onPayment, isCancelling,
             <button className="btn-detail" onClick={() => onViewDetail(booking._id)}>Xem chi tiết</button>
             {canCancel && <button className="btn-cancel" onClick={() => onCancel(booking._id)} disabled={isCancelling}>Hủy booking</button>}
             {canPay && <button className="btn-payment" onClick={() => onPayment(booking)} disabled={isPaying}>Thanh toán</button>}
+
+            {/* ✅ Thêm nút đánh giá */}
+            {canReview && (
+              <button className="btn-review" onClick={() => onReview(booking)}>
+                {booking.reviewStatus ? '⭐ Xem đánh giá' : '✍️ Đánh giá'}
+              </button>
+            )}
           </div>
           <div className="total-price">{formatPrice(booking.totalPrice)}</div>
         </div>
@@ -192,6 +260,52 @@ export default function MyBookingsPage() {
   const [selectedBookingDetail, setSelectedBookingDetail] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
   const [payingId, setPayingId] = useState(null);
+  const [reviewModal, setReviewModal] = useState(null); // { booking, existingReview }
+
+  const handleOpenReview = async (booking) => {
+    if (booking.reviewStatus) {
+      // Đã đánh giá → fetch review cũ
+      try {
+        const res = await axiosInstance.get(`/reviews/booking/${booking._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setReviewModal({ booking, existingReview: res.data.review });
+      } catch {
+        toast.error('Không thể tải đánh giá');
+      }
+    } else {
+      setReviewModal({ booking, existingReview: null });
+    }
+  };
+
+  const handleSubmitReview = async ({ rating, comment, reviewId }) => {
+    try {
+      if (reviewId) {
+        // Cập nhật
+        await axiosInstance.patch(`/reviews/${reviewId}`, { rating, comment }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success('Cập nhật đánh giá thành công');
+      } else {
+        // Tạo mới
+        await axiosInstance.post('/reviews', {
+          bookingId: reviewModal.booking._id,
+          rating,
+          comment,
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        toast.success('Đánh giá thành công');
+        // Cập nhật reviewStatus local không cần refetch
+        setBookings(prev => prev.map(b =>
+          b._id === reviewModal.booking._id ? { ...b, reviewStatus: true } : b
+        ));
+      }
+      setReviewModal(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi gửi đánh giá');
+    }
+  };
 
   const fetchBookings = async (status = '') => {
     if (!token) {
@@ -307,6 +421,7 @@ export default function MyBookingsPage() {
                   onViewDetail={handleViewDetail}
                   onCancel={handleCancel}
                   onPayment={handlePayment}
+                  onReview={handleOpenReview}
                   isCancelling={cancellingId === b._id}
                   isPaying={payingId === b._id}
                 />
@@ -317,6 +432,15 @@ export default function MyBookingsPage() {
       </div>
       {selectedBookingDetail && (
         <BookingDetailModal booking={selectedBookingDetail} onClose={() => setSelectedBookingDetail(null)} />
+      )}
+      
+      {reviewModal && (
+        <ReviewModal
+          booking={reviewModal.booking}
+          existingReview={reviewModal.existingReview}
+          onClose={() => setReviewModal(null)}
+          onSubmit={handleSubmitReview}
+        />
       )}
     </div>
   );

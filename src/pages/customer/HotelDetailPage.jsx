@@ -13,6 +13,7 @@ import {
 } from '../../services/hotelService';
 import { toast } from 'react-toastify';
 import './HotelDetailPage.css';
+import axiosInstance from '../../services/axiosInstance';
 
 export default function HotelDetailPage() {
     const { hotelId } = useParams();
@@ -56,6 +57,46 @@ export default function HotelDetailPage() {
     const [galleryIndex, setGalleryIndex] = useState(0);
     const [selectedRoomDetail, setSelectedRoomDetail] = useState(null);
     const [roomDetailLoading, setRoomDetailLoading] = useState(false);
+
+    // Thêm state mới
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [reviewsPagination, setReviewsPagination] = useState(null);
+    const [avgRating, setAvgRating] = useState(0);
+
+    // Hàm fetch reviews
+    const fetchReviews = async (page = 1, limit = 5) => {
+        setReviewsLoading(true);
+        try {
+            const res = await axiosInstance.get(`/reviews/hotel/${hotelId}`, {
+                params: { page, limit }
+            });
+            if (res.data.success) {
+                setReviews(res.data.data.reviews);
+                setReviewsPagination(res.data.data.pagination);
+                // Tính rating trung bình dựa trên tổng số và tổng rating (nếu API không trả avg)
+                // Hoặc có thể tính từ mảng reviews hiện tại, nhưng tốt nhất nếu backend trả avgRating cho hotel.
+                // Ở đây tôi tính từ tổng số reviews và tổng rating (có thể dùng hotel.avgRating nếu có)
+                if (hotel?.avgRating) {
+                    setAvgRating(hotel.avgRating);
+                } else {
+                    // Tính tạm từ tất cả reviews (nếu có tất cả reviews, nhưng thường chỉ lấy 1 trang)
+                    // Nên dùng hotel.avgRating từ API hotel detail.
+                }
+            }
+        } catch (error) {
+            console.error('Lỗi tải reviews:', error);
+        } finally {
+            setReviewsLoading(false);
+        }
+    };
+
+    // Gọi fetchReviews khi hotelId thay đổi
+    useEffect(() => {
+        if (hotelId) {
+            fetchReviews();
+        }
+    }, [hotelId]);
 
     // Hàm fetch dữ liệu dựa trên ngày mới
     const fetchHotelData = async (
@@ -420,6 +461,8 @@ export default function HotelDetailPage() {
                     </div>
                 </div>
 
+
+
                 <div className="booking-summary">
                     <h3>Thông tin đặt phòng</h3>
                     <p>Nhận phòng: {checkInDate}</p>
@@ -488,6 +531,66 @@ export default function HotelDetailPage() {
                     </button>
 
                 </div>
+            </div>
+
+            {/* Phần đánh giá của khách sạn */}
+            <div className="hotel-reviews-section">
+                <div className="reviews-header">
+                    <h3>Đánh giá từ khách hàng</h3>
+                    {hotel.avgRating !== undefined && (
+                        <div className="rating-summary">
+                            <span className="avg-rating">{hotel.avgRating.toFixed(1)}</span>
+                            <div className="stars">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <span key={star} className={star <= Math.round(hotel.avgRating) ? 'star filled' : 'star'}>★</span>
+                                ))}
+                            </div>
+                            <span className="total-reviews">({hotel.totalReviews || 0} đánh giá)</span>
+                        </div>
+                    )}
+                </div>
+
+                {reviewsLoading && <div className="loading-reviews">Đang tải đánh giá...</div>}
+
+                {!reviewsLoading && reviews.length === 0 && (
+                    <div className="no-reviews">Chưa có đánh giá nào cho khách sạn này.</div>
+                )}
+
+                <div className="reviews-list">
+                    {reviews.map(review => (
+                        <div key={review._id} className="review-item">
+                            <div className="review-user">
+                                <strong>{review.user.fullName || `${review.user.firstName} ${review.user.lastName}`}</strong>
+                                <div className="review-stars">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <span key={star} className={star <= review.rating ? 'star filled' : 'star'}>★</span>
+                                    ))}
+                                </div>
+                                <span className="review-date">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                            <p className="review-comment">{review.comment}</p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Phân trang nếu cần */}
+                {reviewsPagination && reviewsPagination.totalPages > 1 && (
+                    <div className="reviews-pagination">
+                        <button
+                            disabled={reviewsPagination.page === 1}
+                            onClick={() => fetchReviews(reviewsPagination.page - 1)}
+                        >
+                            Trước
+                        </button>
+                        <span>Trang {reviewsPagination.page} / {reviewsPagination.totalPages}</span>
+                        <button
+                            disabled={reviewsPagination.page === reviewsPagination.totalPages}
+                            onClick={() => fetchReviews(reviewsPagination.page + 1)}
+                        >
+                            Sau
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Gallery Modal */}

@@ -432,3 +432,19 @@
 .btn-cancel { background: #fee2e2; color: #991b1b; }
 .btn-payment { background: #d1fae5; color: #065f46; }
 .btn-detail:hover, .btn-cancel:hover, .btn-payment:hover { filter: brightness(0.95); }
+
+.btn-review {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #f5a623;
+  background: #fffbf0;
+  color: #b87900;
+  transition: background 0.15s;
+}
+
+.btn-review:hover {
+  background: #fef3d0;
+}
