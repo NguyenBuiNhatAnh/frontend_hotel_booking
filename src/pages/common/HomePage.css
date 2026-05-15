@@ -398,3 +398,131 @@
     font-size: 34px;
   }
 }
+
+/* Stats Showcase */
+.stats-showcase {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+}
+
+.stats-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  text-align: center;
+  background: white;
+  padding: 30px 20px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-8px);
+}
+
+.stat-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.stat-number {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #007bff;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 1rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.stats-note {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-grid {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .stat-card {
+    padding: 20px;
+  }
+  .stat-number {
+    font-size: 1.8rem;
+  }
+}
+
+/* Hero mới - không có form tìm kiếm, chỉ có nút lớn */
+.hero-simple {
+  min-height: 500px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  border-radius: 0 0 40px 40px;
+  margin-bottom: 20px;
+}
+
+.hero-simple-content {
+  max-width: 800px;
+  padding: 40px 20px;
+}
+
+.hero-simple h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.hero-simple p {
+  font-size: 1.2rem;
+  margin-bottom: 40px;
+  opacity: 0.9;
+}
+
+.btn-explore {
+  background: white;
+  color: #764ba2;
+  font-size: 1.4rem;
+  font-weight: bold;
+  padding: 16px 40px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.btn-explore:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 30px rgba(0,0,0,0.3);
+  background: #f8f9ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-simple h1 {
+    font-size: 2rem;
+  }
+  .btn-explore {
+    font-size: 1.2rem;
+    padding: 12px 30px;
+  }
+}

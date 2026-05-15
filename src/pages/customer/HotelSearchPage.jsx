@@ -1,6 +1,6 @@
 // pages/customer/HotelSearchPage.jsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { searchHotels } from '../../services/hotelService';
 import { useHotel } from '../../contexts/HotelContext';
@@ -9,204 +9,224 @@ import './HotelSearchPage.css';
 const AMENITIES_LIST = ['WiFi', 'Pool', 'Parking', 'Gym', 'Breakfast', 'Spa', 'Restaurant'];
 
 export default function HotelSearchPage() {
-
   const navigate = useNavigate();
   const location = useLocation();
-
   const { updateHotelBooking } = useHotel();
 
-  const queryParams = new URLSearchParams(location.search);
+  // === State cho các giá trị hiển thị trên form (local, chưa apply) ===
+  const [localCity, setLocalCity] = useState('');
+  const [localCheckInDate, setLocalCheckInDate] = useState('');
+  const [localCheckOutDate, setLocalCheckOutDate] = useState('');
+  const [localGuests, setLocalGuests] = useState(1);
+  const [localMinPrice, setLocalMinPrice] = useState('');
+  const [localMaxPrice, setLocalMaxPrice] = useState('');
+  const [localAmenities, setLocalAmenities] = useState([]);
 
-  // Filter state
-  const [city, setCity] = useState(queryParams.get('city') || '');
-  const [checkInDate, setCheckInDate] = useState(queryParams.get('checkInDate') || '');
-  const [checkOutDate, setCheckOutDate] = useState(queryParams.get('checkOutDate') || '');
-  const [guests, setGuests] = useState(queryParams.get('guests') || 1);
-  const [minPrice, setMinPrice] = useState(queryParams.get('minPrice') || '');
-  const [maxPrice, setMaxPrice] = useState(queryParams.get('maxPrice') || '');
-  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  // === State cho các bộ lọc đã được áp dụng (dùng để gọi API) ===
+  const [appliedFilters, setAppliedFilters] = useState({
+    city: '',
+    checkInDate: '',
+    checkOutDate: '',
+    guests: 1,
+    minPrice: '',
+    maxPrice: '',
+    amenities: [],
+  });
+
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState([]);
   const [pagination, setPagination] = useState(null);
-
   const limit = 10;
 
-  // Load amenities from URL
+  // === Khởi tạo từ URL (chạy 1 lần khi mount) ===
   useEffect(() => {
-    const amenitiesParam = queryParams.get('amenities');
+    const queryParams = new URLSearchParams(location.search);
+    const cityParam = queryParams.get('city') || '';
+    const checkInParam = queryParams.get('checkInDate') || '';
+    const checkOutParam = queryParams.get('checkOutDate') || '';
+    const guestsParam = queryParams.get('guests') ? Number(queryParams.get('guests')) : 1;
+    const minPriceParam = queryParams.get('minPrice') || '';
+    const maxPriceParam = queryParams.get('maxPrice') || '';
+    const amenitiesParam = queryParams.get('amenities') ? queryParams.get('amenities').split(',') : [];
 
-    if (amenitiesParam) {
-      setSelectedAmenities(amenitiesParam.split(','));
-    }
+    // Cập nhật local form
+    setLocalCity(cityParam);
+    setLocalCheckInDate(checkInParam);
+    setLocalCheckOutDate(checkOutParam);
+    setLocalGuests(guestsParam);
+    setLocalMinPrice(minPriceParam);
+    setLocalMaxPrice(maxPriceParam);
+    setLocalAmenities(amenitiesParam);
+
+    // Cập nhật appliedFilters để trigger search ngay khi mount
+    setAppliedFilters({
+      city: cityParam,
+      checkInDate: checkInParam,
+      checkOutDate: checkOutParam,
+      guests: guestsParam,
+      minPrice: minPriceParam,
+      maxPrice: maxPriceParam,
+      amenities: amenitiesParam,
+    });
   }, []);
 
-  const handleSearch = async (newPage = 1) => {
-
+  // === Hàm gọi API dựa trên appliedFilters và page ===
+  const performSearch = useCallback(async () => {
     setLoading(true);
-
     const params = {
-      page: newPage,
+      page,
       limit,
-      ...(city && { city }),
-      ...(checkInDate && { checkInDate }),
-      ...(checkOutDate && { checkOutDate }),
-      ...(guests && { guests }),
-      ...(minPrice && { minPrice }),
-      ...(maxPrice && { maxPrice }),
-      ...(selectedAmenities.length && {
-        amenities: selectedAmenities.join(',')
-      })
+      ...(appliedFilters.city && { city: appliedFilters.city }),
+      ...(appliedFilters.checkInDate && { checkInDate: appliedFilters.checkInDate }),
+      ...(appliedFilters.checkOutDate && { checkOutDate: appliedFilters.checkOutDate }),
+      ...(appliedFilters.guests && { guests: appliedFilters.guests }),
+      ...(appliedFilters.minPrice && { minPrice: appliedFilters.minPrice }),
+      ...(appliedFilters.maxPrice && { maxPrice: appliedFilters.maxPrice }),
+      ...(appliedFilters.amenities.length && { amenities: appliedFilters.amenities.join(',') }),
     };
 
     try {
-
       const data = await searchHotels(params);
-
       setHotels(data.hotels);
       setPagination(data.pagination);
-      setPage(newPage);
 
-      // update url
+      // Cập nhật URL
       const urlParams = new URLSearchParams();
-
-      Object.entries(params).forEach(([k, v]) => {
-        urlParams.set(k, v);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          urlParams.set(key, value);
+        }
       });
-
       navigate(`?${urlParams.toString()}`, { replace: true });
-
     } catch (err) {
-
       console.error(err);
       setHotels([]);
-
     } finally {
       setLoading(false);
     }
+  }, [appliedFilters, page, limit, navigate]);
+
+  // Gọi API mỗi khi appliedFilters hoặc page thay đổi
+  useEffect(() => {
+    performSearch();
+  }, [performSearch]);
+
+  // === Xử lý khi nhấn nút Tìm kiếm ===
+  const handleSearchClick = () => {
+    setPage(1); // reset về trang 1 khi áp dụng bộ lọc mới
+    setAppliedFilters({
+      city: localCity,
+      checkInDate: localCheckInDate,
+      checkOutDate: localCheckOutDate,
+      guests: localGuests,
+      minPrice: localMinPrice,
+      maxPrice: localMaxPrice,
+      amenities: localAmenities,
+    });
   };
 
-  useEffect(() => {
-    handleSearch(1);
-  }, [
-    city,
-    checkInDate,
-    checkOutDate,
-    guests,
-    minPrice,
-    maxPrice,
-    selectedAmenities
-  ]);
-
+  // === Xử lý checkbox tiện ích (local) ===
   const toggleAmenity = (amenity) => {
-
-    setSelectedAmenities(prev =>
-      prev.includes(amenity)
-        ? prev.filter(a => a !== amenity)
-        : [...prev, amenity]
+    setLocalAmenities(prev =>
+      prev.includes(amenity) ? prev.filter(a => a !== amenity) : [...prev, amenity]
     );
   };
 
-  // ✅ SAVE TO CONTEXT HERE
+  // === Điều hướng sang trang chi tiết ===
   const goToHotelDetail = (hotelId) => {
-
     updateHotelBooking({
       hotelId,
-      checkInDate,
-      checkOutDate,
-      guests,
+      checkInDate: appliedFilters.checkInDate,
+      checkOutDate: appliedFilters.checkOutDate,
+      guests: appliedFilters.guests,
     });
-
     navigate(`/hotels/${hotelId}`);
+  };
+
+  // === Phân trang ===
+  const goToPage = (newPage) => {
+    if (newPage >= 1 && newPage <= (pagination?.totalPages || 1)) {
+      setPage(newPage);
+    }
   };
 
   return (
     <div className="hotel-search-page">
-
       <div className="filters-sidebar">
-
         <h3>Bộ lọc</h3>
+        {/* Nút Tìm kiếm */}
+        
+        <button className="search-button" onClick={handleSearchClick}>
+          Tìm kiếm
+        </button>
 
         <div className="filter-group">
           <label>Thành phố</label>
-
           <input
-            value={city}
-            onChange={e => setCity(e.target.value)}
+            value={localCity}
+            onChange={e => setLocalCity(e.target.value)}
             placeholder="VD: Ho Chi Minh"
           />
         </div>
 
         <div className="filter-group">
           <label>Ngày nhận phòng</label>
-
           <input
             type="date"
-            value={checkInDate}
-            onChange={e => setCheckInDate(e.target.value)}
+            value={localCheckInDate}
+            onChange={e => setLocalCheckInDate(e.target.value)}
           />
         </div>
 
         <div className="filter-group">
           <label>Ngày trả phòng</label>
-
           <input
             type="date"
-            value={checkOutDate}
-            onChange={e => setCheckOutDate(e.target.value)}
+            value={localCheckOutDate}
+            onChange={e => setLocalCheckOutDate(e.target.value)}
           />
         </div>
 
         <div className="filter-group">
           <label>Số khách</label>
-
           <input
             type="number"
             min="1"
-            value={guests}
-            onChange={e => setGuests(e.target.value)}
+            value={localGuests}
+            onChange={e => setLocalGuests(e.target.value)}
           />
         </div>
 
         <div className="filter-group">
-
           <label>Khoảng giá (VND)</label>
-
           <div className="price-range">
-
             <input
               type="number"
               placeholder="Tối thiểu"
-              value={minPrice}
-              onChange={e => setMinPrice(e.target.value)}
+              value={localMinPrice}
+              onChange={e => setLocalMinPrice(e.target.value)}
             />
-
             <span>-</span>
-
             <input
               type="number"
               placeholder="Tối đa"
-              value={maxPrice}
-              onChange={e => setMaxPrice(e.target.value)}
+              value={localMaxPrice}
+              onChange={e => setLocalMaxPrice(e.target.value)}
             />
           </div>
         </div>
 
         <div className="filter-group">
-
           <label>Tiện ích</label>
-
           <div className="amenities-checkbox">
-
             {AMENITIES_LIST.map(am => (
               <label key={am}>
-
                 <input
                   type="checkbox"
-                  checked={selectedAmenities.includes(am)}
+                  checked={localAmenities.includes(am)}
                   onChange={() => toggleAmenity(am)}
                 />
-
                 {am}
               </label>
             ))}
@@ -215,53 +235,23 @@ export default function HotelSearchPage() {
       </div>
 
       <div className="results-area">
-
-        {loading && (
-          <div className="loading">
-            Đang tìm kiếm...
-          </div>
-        )}
-
-        {!loading && hotels.length === 0 && (
-          <div className="no-results">
-            Không tìm thấy khách sạn nào.
-          </div>
-        )}
+        {loading && <div className="loading">Đang tìm kiếm...</div>}
+        {!loading && hotels.length === 0 && <div className="no-results">Không tìm thấy khách sạn nào.</div>}
 
         <div className="hotels-grid">
-
           {hotels.map(hotel => (
-
-            <div
-              key={hotel._id}
-              className="hotel-card"
-              onClick={() => goToHotelDetail(hotel._id)}
-            >
-
-              <img
-                src={hotel.image?.[0]?.url || '/placeholder.jpg'}
-                alt={hotel.name}
-              />
-
+            <div key={hotel._id} className="hotel-card" onClick={() => goToHotelDetail(hotel._id)}>
+              <img src={hotel.image?.[0]?.url || '/placeholder.jpg'} alt={hotel.name} />
               <div className="hotel-info">
-
                 <h3>{hotel.name}</h3>
-
-                <p className="address">
-                  {hotel.address?.street}, {hotel.address?.city}
-                </p>
-
+                <p className="address">{hotel.address?.street}, {hotel.address?.city}</p>
                 <div className="amenities">
-
                   {hotel.amenities?.slice(0, 3).map((a, i) => (
                     <span key={i}>{a}</span>
                   ))}
                 </div>
-
                 <p className="price">
-                  Giá từ {hotel.minPrice?.toLocaleString()}đ
-                  {' - '}
-                  {hotel.maxPrice?.toLocaleString()}đ
+                  Giá từ {hotel.minPrice?.toLocaleString()}đ - {hotel.maxPrice?.toLocaleString()}đ
                 </p>
               </div>
             </div>
@@ -269,26 +259,10 @@ export default function HotelSearchPage() {
         </div>
 
         {pagination && pagination.totalPages > 1 && (
-
           <div className="pagination">
-
-            <button
-              disabled={page === 1}
-              onClick={() => handleSearch(page - 1)}
-            >
-              Trước
-            </button>
-
-            <span>
-              Trang {page} / {pagination.totalPages}
-            </span>
-
-            <button
-              disabled={page === pagination.totalPages}
-              onClick={() => handleSearch(page + 1)}
-            >
-              Sau
-            </button>
+            <button disabled={page === 1} onClick={() => goToPage(page - 1)}>Trước</button>
+            <span>Trang {page} / {pagination.totalPages}</span>
+            <button disabled={page === pagination.totalPages} onClick={() => goToPage(page + 1)}>Sau</button>
           </div>
         )}
       </div>
