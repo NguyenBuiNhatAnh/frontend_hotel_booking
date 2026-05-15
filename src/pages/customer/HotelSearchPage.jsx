@@ -156,7 +156,7 @@ export default function HotelSearchPage() {
       <div className="filters-sidebar">
         <h3>Bộ lọc</h3>
         {/* Nút Tìm kiếm */}
-        
+
         <button className="search-button" onClick={handleSearchClick}>
           Tìm kiếm
         </button>
@@ -241,7 +241,7 @@ export default function HotelSearchPage() {
         <div className="hotels-grid">
           {hotels.map(hotel => (
             <div key={hotel._id} className="hotel-card" onClick={() => goToHotelDetail(hotel._id)}>
-              <img src={hotel.image?.[0]?.url || '/placeholder.jpg'} alt={hotel.name} />
+              <img loading="lazy" src={hotel.image?.[0]?.url || '/placeholder.jpg'} alt={hotel.name} />
               <div className="hotel-info">
                 <h3>{hotel.name}</h3>
                 <p className="address">{hotel.address?.street}, {hotel.address?.city}</p>

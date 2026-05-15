@@ -13,6 +13,8 @@ import HotelSearchPage from './pages/customer/HotelSearchPage';
 import HotelDetailPage from './pages/customer/HotelDetailPage';
 
 import './index.css';
+import PaymentSuccess from './pages/customer/PaymentSuccess.jsx';
+import PaymentFailed from './pages/customer/PaymentFailed.jsx';
 
 function Layout() {
   return (
@@ -43,6 +45,8 @@ function App() {
         <Route path="/manager" element={<ManagerDashboard />} />
         <Route path="/hotels" element={<HotelSearchPage />} />
         <Route path="/hotels/:hotelId" element={<HotelDetailPage />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/failed" element={<PaymentFailed />} />
       </Route>
       {/* Routes KHÔNG có Header & Footer */}
       <Route path="/admin/*" element={<AdminHotelsPage />} />

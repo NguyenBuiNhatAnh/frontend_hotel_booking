@@ -75,8 +75,10 @@ function BookingDetailModal({ booking, onClose }) {
           <tbody>
             {booking.rooms.map((r) => (
               <tr key={r._id}>
-                <td>{r.room.name}</td><td>x{r.quantity}</td>
-                <td>{formatPrice(r.pricePerNight)}</td><td>{formatPrice(r.totalPrice)}</td>
+                <td>{r.room.name}</td>
+                <td>x{r.quantity}</td>
+                <td>{formatPrice(r.pricePerNight)}</td>
+                <td>{formatPrice(r.totalPrice)}</td>
               </tr>
             ))}
           </tbody>
@@ -90,7 +92,8 @@ function BookingDetailModal({ booking, onClose }) {
               <tbody>
                 {booking.services.map((s) => (
                   <tr key={s._id}>
-                    <td>{s.name}</td><td>x{s.quantity}</td>
+                    <td>{s.name}</td>
+                    <td>x{s.quantity}</td>
                     <td>{formatPrice(s.unitPrice)}</td>
                     <td>{s.numberOfDays || (s.chargeType === 'one_time' ? '—' : '1')}</td>
                     <td>{formatPrice(s.totalPrice)}</td>
@@ -125,7 +128,8 @@ function BookingCard({ booking, onViewDetail, onCancel, onPayment, isCancelling,
   const status = STATUS_CONFIG[booking.status] || {};
   const nights = nightCount(booking.checkInDate, booking.checkOutDate);
   const canCancel = !['canceled', 'checked_in', 'checked_out', 'completed'].includes(booking.status);
-  const canPay = booking.status === 'pending' && booking.paymentStatus !== 'paid';
+  const canPay = booking.status === 'pending' && booking.paymentStatus !== 'paid' && 
+                 booking.expiredAt && new Date(booking.expiredAt) > new Date();
 
   return (
     <div className={`booking-card ${booking.status === 'canceled' ? 'canceled' : ''}`}>
@@ -190,6 +194,10 @@ export default function MyBookingsPage() {
   const [payingId, setPayingId] = useState(null);
 
   const fetchBookings = async (status = '') => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const params = status ? { status } : {};
@@ -207,10 +215,15 @@ export default function MyBookingsPage() {
   };
 
   useEffect(() => {
-    fetchBookings(activeStatus);
-  }, [activeStatus]);
+    if (token) {
+      fetchBookings(activeStatus);
+    } else {
+      setLoading(false);
+    }
+  }, [activeStatus, token]);
 
   const handleViewDetail = async (bookingId) => {
+    if (!token) return;
     try {
       const res = await axiosInstance.get(`/bookings/${bookingId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -222,6 +235,7 @@ export default function MyBookingsPage() {
   };
 
   const handleCancel = async (bookingId) => {
+    if (!token) return;
     if (!window.confirm('Bạn có chắc muốn hủy booking này?')) return;
     setCancellingId(bookingId);
     try {
@@ -237,10 +251,23 @@ export default function MyBookingsPage() {
     }
   };
 
-  const handlePayment = (booking) => {
-    // Tích hợp thanh toán (VD: VNPay)
-    toast.info('Chức năng thanh toán đang được phát triển');
-    // window.location.href = `/payment/${booking._id}`;
+  const handlePayment = async (booking) => {
+    if (!token || !booking._id) return;
+    setPayingId(booking._id);
+    try {
+      const response = await axiosInstance.post('/payments/create', { bookingId: booking._id }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { paymentUrl } = response.data;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        throw new Error('Không nhận được đường dẫn thanh toán');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi tạo thanh toán, vui lòng thử lại');
+      setPayingId(null);
+    }
   };
 
   return (
