@@ -287,7 +287,7 @@ export default function HotelDetailPage() {
     const handlePlaceBooking = async () => {
         if (!token || !user) {
             toast.warning('Vui lòng đăng nhập để đặt phòng');
-            navigate('/login', { state: { from: location.pathname + location.search } });
+            navigate('/auth', { state: { from: location.pathname + location.search } });
             return;
         }
         if (Object.keys(selectedRooms).length === 0) {
