@@ -25,34 +25,24 @@ const FILTER_TABS = [
 ];
 
 const formatDate = (iso) =>
-  new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  iso ? new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--/--/----';
 
 const formatDateTime = (iso) =>
-  new Date(iso).toLocaleString('vi-VN');
+  iso ? new Date(iso).toLocaleString('vi-VN') : '--/--/---- --:--';
 
-const formatPrice = (n) => n?.toLocaleString('vi-VN') + '₫';
+const formatPrice = (n) => (n != null ? n.toLocaleString('vi-VN') + '₫' : '0₫');
 
-const nightCount = (checkIn, checkOut) =>
-  Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+const nightCount = (checkIn, checkOut) => {
+  if (!checkIn || !checkOut) return 0;
+  return Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+};
 
-// === TẠO THUMBNAIL NHẸ ===
 const getThumbnailUrl = (url) => {
   if (!url) return '/placeholder.jpg';
   if (url.includes('res.cloudinary.com')) {
     return url.replace('/upload/', '/upload/w_300,h_200,c_fill/');
   }
-  if (url.includes('unsplash.com')) {
-    try {
-      const urlObj = new URL(url);
-      urlObj.searchParams.set('w', '300');
-      urlObj.searchParams.set('h', '200');
-      urlObj.searchParams.set('fit', 'crop');
-      return urlObj.toString();
-    } catch {
-      return url;
-    }
-  }
-  if (url.includes('pexels.com')) {
+  if (url.includes('unsplash.com') || url.includes('pexels.com')) {
     try {
       const urlObj = new URL(url);
       urlObj.searchParams.set('w', '300');
@@ -66,6 +56,7 @@ const getThumbnailUrl = (url) => {
   return url;
 };
 
+// ========== MODAL ĐÁNH GIÁ ==========
 function ReviewModal({ booking, existingReview, onClose, onSubmit }) {
   const [rating, setRating] = useState(existingReview?.rating || 5);
   const [comment, setComment] = useState(existingReview?.comment || '');
@@ -83,7 +74,9 @@ function ReviewModal({ booking, existingReview, onClose, onSubmit }) {
       <div className="booking-detail-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>✕</button>
         <h2>{existingReview ? 'Cập nhật đánh giá' : 'Đánh giá khách sạn'}</h2>
-        <p style={{ color: '#888', marginBottom: 16 }}>{booking.hotel.name}</p>
+        <p style={{ color: '#888', marginBottom: 16 }}>
+          {booking?.hotel?.name || 'Khách sạn không xác định'}
+        </p>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
           {[1, 2, 3, 4, 5].map((star) => (
@@ -125,11 +118,67 @@ function ReviewModal({ booking, existingReview, onClose, onSubmit }) {
   );
 }
 
+// ========== MODAL CHI TIẾT BOOKING ==========
 function BookingDetailModal({ booking, onClose }) {
   if (!booking) return null;
   const hotel = booking.hotel;
   const nights = nightCount(booking.checkInDate, booking.checkOutDate);
 
+  // Trường hợp khách sạn bị xóa
+  if (!hotel) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="booking-detail-modal" onClick={(e) => e.stopPropagation()}>
+          <button className="modal-close" onClick={onClose}>✕</button>
+          <h2>Chi tiết đặt phòng</h2>
+          <div className="detail-section">
+            <div className="detail-row"><strong>Mã booking:</strong> {booking._id}</div>
+            <div className="detail-row"><strong>Khách sạn:</strong> <span style={{ color: 'red' }}>(Đã bị xóa)</span></div>
+            <div className="detail-row"><strong>Check-in:</strong> {formatDate(booking.checkInDate)}</div>
+            <div className="detail-row"><strong>Check-out:</strong> {formatDate(booking.checkOutDate)}</div>
+            <div className="detail-row"><strong>Số đêm:</strong> {nights}</div>
+            <div className="detail-row"><strong>Số khách:</strong> {booking.guests}</div>
+            <div className="detail-row">
+              <strong>Trạng thái:</strong>{' '}
+              <span className={`status-badge ${STATUS_CONFIG[booking.status]?.color}`}>
+                {STATUS_CONFIG[booking.status]?.icon} {STATUS_CONFIG[booking.status]?.label}
+              </span>
+            </div>
+            <div className="detail-row">
+              <strong>Thanh toán:</strong>{' '}
+              <span className={`payment-status ${booking.paymentStatus === 'paid' ? 'paid' : 'unpaid'}`}>
+                {booking.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+              </span>
+            </div>
+          </div>
+          <h3>Danh sách phòng</h3>
+          <table className="detail-table">
+            <thead>
+              <tr><th>Tên phòng</th><th>Số lượng</th><th>Đơn giá/đêm</th><th>Thành tiền</th></tr>
+            </thead>
+            <tbody>
+              {booking.rooms?.map((r, idx) => (
+                <tr key={idx}>
+                  <td>{r.room?.name || 'Phòng không xác định'}</td>
+                  <td>x{r.quantity}</td>
+                  <td>{formatPrice(r.pricePerNight)}</td>
+                  <td>{formatPrice(r.totalPrice)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="detail-total">
+            <div>Tiền phòng: {formatPrice(booking.roomPrice)}</div>
+            <div>Tiền dịch vụ: {formatPrice(booking.servicePrice)}</div>
+            <div><strong>Tổng cộng: {formatPrice(booking.totalPrice)}</strong></div>
+          </div>
+          <button onClick={onClose} style={{ marginTop: 20 }}>Đóng</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Trường hợp có khách sạn đầy đủ
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="booking-detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -138,7 +187,7 @@ function BookingDetailModal({ booking, onClose }) {
         <div className="detail-section">
           <div className="detail-row"><strong>Mã booking:</strong> {booking._id}</div>
           <div className="detail-row"><strong>Khách sạn:</strong> {hotel.name}</div>
-          <div className="detail-row"><strong>Địa chỉ:</strong> {hotel.address.street}, {hotel.address.ward}, {hotel.address.city}</div>
+          <div className="detail-row"><strong>Địa chỉ:</strong> {hotel.address?.street}, {hotel.address?.ward}, {hotel.address?.city}</div>
           <div className="detail-row"><strong>Check-in:</strong> {formatDate(booking.checkInDate)} ({hotel.checkInTime})</div>
           <div className="detail-row"><strong>Check-out:</strong> {formatDate(booking.checkOutDate)} ({hotel.checkOutTime})</div>
           <div className="detail-row"><strong>Số đêm:</strong> {nights}</div>
@@ -162,9 +211,9 @@ function BookingDetailModal({ booking, onClose }) {
         <table className="detail-table">
           <thead><tr><th>Tên phòng</th><th>Số lượng</th><th>Đơn giá/đêm</th><th>Thành tiền</th></tr></thead>
           <tbody>
-            {booking.rooms.map((r) => (
+            {booking.rooms?.map((r) => (
               <tr key={r._id}>
-                <td>{r.room.name}</td>
+                <td>{r.room?.name}</td>
                 <td>x{r.quantity}</td>
                 <td>{formatPrice(r.pricePerNight)}</td>
                 <td>{formatPrice(r.totalPrice)}</td>
@@ -173,7 +222,7 @@ function BookingDetailModal({ booking, onClose }) {
           </tbody>
         </table>
 
-        {booking.services.length > 0 && (
+        {booking.services?.length > 0 && (
           <>
             <h3>Dịch vụ thêm</h3>
             <table className="detail-table">
@@ -210,9 +259,38 @@ function BookingDetailModal({ booking, onClose }) {
   );
 }
 
+// ========== BOOKING CARD ==========
 function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isCancelling, isPaying }) {
   const hotel = booking.hotel;
-  const mainImage = getThumbnailUrl(hotel.image?.[0]?.url); // ✅ thumbnail nhẹ
+  
+  // Nếu khách sạn bị xóa (null) => hiển thị card lỗi nhẹ
+  if (!hotel) {
+    return (
+      <div className="booking-card canceled">
+        <div className="booking-image">
+          <div className="no-image">🏨</div>
+          <span className="status-badge status-canceled">❌ Đã hủy (KS không còn)</span>
+        </div>
+        <div className="booking-content">
+          <h3 className="hotel-name">(Khách sạn đã bị xóa)</h3>
+          <p className="hotel-address">📍 Thông tin không còn tồn tại</p>
+          <div className="booking-dates">
+            <div className="date-block"><span className="date-label">Check-in</span><span className="date-value">{formatDate(booking.checkInDate)}</span></div>
+            <div className="nights-divider"><span>{nightCount(booking.checkInDate, booking.checkOutDate)}</span><small>đêm</small></div>
+            <div className="date-block"><span className="date-label">Check-out</span><span className="date-value">{formatDate(booking.checkOutDate)}</span></div>
+          </div>
+          <div className="booking-footer">
+            <div className="booking-actions">
+              <button className="btn-detail" onClick={() => onViewDetail(booking._id)}>Xem chi tiết</button>
+            </div>
+            <div className="total-price">{formatPrice(booking.totalPrice)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const mainImage = getThumbnailUrl(hotel.image?.[0]?.url);
   const status = STATUS_CONFIG[booking.status] || {};
   const nights = nightCount(booking.checkInDate, booking.checkOutDate);
   const canCancel = !['canceled', 'checked_in', 'checked_out', 'completed'].includes(booking.status);
@@ -234,7 +312,7 @@ function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isC
         <div className="booking-header">
           <div>
             <h3 className="hotel-name">{hotel.name}</h3>
-            <p className="hotel-address">📍 {hotel.address.street}, {hotel.address.ward}, {hotel.address.city}</p>
+            <p className="hotel-address">📍 {hotel.address?.street}, {hotel.address?.ward}, {hotel.address?.city}</p>
           </div>
           <div className="booking-id">#{booking._id.slice(-6).toUpperCase()}</div>
         </div>
@@ -244,15 +322,15 @@ function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isC
           <div className="date-block"><span className="date-label">Check-out</span><span className="date-value">{formatDate(booking.checkOutDate)}</span></div>
         </div>
         <div className="booking-rooms">
-          {booking.rooms.map((r) => (
+          {booking.rooms?.map((r) => (
             <div key={r._id} className="room-item">
-              <span>🛏 {r.room.name}</span>
+              <span>🛏 {r.room?.name || 'Phòng không xác định'}</span>
               <span>x{r.quantity}</span>
               <span className="room-price">{formatPrice(r.pricePerNight)}/đêm</span>
             </div>
           ))}
         </div>
-        {booking.services.length > 0 && (
+        {booking.services?.length > 0 && (
           <div className="booking-services">
             {booking.services.map((s) => <span key={s._id} className="service-tag">✨ {s.name}</span>)}
           </div>
@@ -281,6 +359,7 @@ function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isC
   );
 }
 
+// ========== TRANG CHÍNH ==========
 export default function MyBookingsPage() {
   const { token } = useAuth();
   const [bookings, setBookings] = useState([]);
@@ -293,6 +372,7 @@ export default function MyBookingsPage() {
   const [reviewModal, setReviewModal] = useState(null);
 
   const handleOpenReview = async (booking) => {
+    if (!token) return;
     if (booking.reviewStatus) {
       try {
         const res = await axiosInstance.get(`/reviews/booking/${booking._id}`, {
