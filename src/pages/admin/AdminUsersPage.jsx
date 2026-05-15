@@ -196,7 +196,6 @@ export default function AdminUsersPage() {
           <a href="/admin" className="sidebar-link">🏨 Khách sạn</a>
           <a href="/admin/users" className="sidebar-link active">👥 Người dùng</a>
         </nav>
-        <a href="/" className="sidebar-back">← Về trang chủ</a>
       </aside>
 
       {/* Main content */}
