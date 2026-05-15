@@ -374,6 +374,18 @@ export default function HotelDetailPage() {
                 )}
             </div>
 
+            {hotel.avgRating !== undefined && (
+                <div className="hotel-rating-header">
+                    <div className="rating-stars">
+                        {[1, 2, 3, 4, 5].map(star => (
+                            <span key={star} className={star <= Math.round(hotel.avgRating) ? 'star filled' : 'star'}>★</span>
+                        ))}
+                    </div>
+                    <span className="rating-value">{hotel.avgRating.toFixed(1)}</span>
+                    <span className="review-count">({hotel.totalReviews || 0} đánh giá)</span>
+                </div>
+            )}
+
             {/* Form thay đổi ngày/số khách */}
             <div className="date-guests-form">
                 <div className="form-row">

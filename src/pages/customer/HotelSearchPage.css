@@ -448,3 +448,23 @@ body {
 .search-button:active {
   transform: scale(0.98);
 }
+
+.hotel-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0;
+}
+.hotel-rating .star {
+  font-size: 16px;
+  color: #ddd;
+}
+.hotel-rating .star.filled {
+  color: #f5a623;
+}
+.rating-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-left: 4px;
+}

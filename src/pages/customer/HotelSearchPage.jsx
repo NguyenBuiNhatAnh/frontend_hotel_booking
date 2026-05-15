@@ -1,5 +1,4 @@
 // pages/customer/HotelSearchPage.jsx
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { searchHotels } from '../../services/hotelService';
@@ -8,12 +7,64 @@ import './HotelSearchPage.css';
 
 const AMENITIES_LIST = ['WiFi', 'Pool', 'Parking', 'Gym', 'Breakfast', 'Spa', 'Restaurant'];
 
+// Tạo ảnh thumbnail từ URL gốc (hỗ trợ Cloudinary, Unsplash, Pexels)
+const getThumbnailUrl = (url) => {
+  if (!url) return '/placeholder.jpg';
+  
+  // Cloudinary: thêm w_400,h_250,c_fill
+  if (url.includes('res.cloudinary.com')) {
+    return url.replace('/upload/', '/upload/w_400,h_250,c_fill/');
+  }
+  
+  // Unsplash: thêm query ?w=400&h=250&fit=crop
+  if (url.includes('unsplash.com')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', '400');
+      urlObj.searchParams.set('h', '250');
+      urlObj.searchParams.set('fit', 'crop');
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+  
+  // Pexels: tương tự Unsplash
+  if (url.includes('pexels.com')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', '400');
+      urlObj.searchParams.set('h', '250');
+      urlObj.searchParams.set('fit', 'crop');
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+  
+  return url;
+};
+
+// Component hiển thị sao
+const RatingStars = ({ rating }) => {
+  const fullStars = Math.round(rating || 0);
+  if (!rating || rating === 0) return null;
+  return (
+    <div className="rating-stars">
+      {[1, 2, 3, 4, 5].map(star => (
+        <span key={star} className={star <= fullStars ? 'star filled' : 'star'}>★</span>
+      ))}
+      <span className="rating-value">{rating.toFixed(1)}</span>
+    </div>
+  );
+};
+
 export default function HotelSearchPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { updateHotelBooking } = useHotel();
 
-  // === State cho các giá trị hiển thị trên form (local, chưa apply) ===
+  // Local form state
   const [localCity, setLocalCity] = useState('');
   const [localCheckInDate, setLocalCheckInDate] = useState('');
   const [localCheckOutDate, setLocalCheckOutDate] = useState('');
@@ -21,8 +72,9 @@ export default function HotelSearchPage() {
   const [localMinPrice, setLocalMinPrice] = useState('');
   const [localMaxPrice, setLocalMaxPrice] = useState('');
   const [localAmenities, setLocalAmenities] = useState([]);
+  const [localRating, setLocalRating] = useState('');
 
-  // === State cho các bộ lọc đã được áp dụng (dùng để gọi API) ===
+  // Applied filters
   const [appliedFilters, setAppliedFilters] = useState({
     city: '',
     checkInDate: '',
@@ -31,6 +83,7 @@ export default function HotelSearchPage() {
     minPrice: '',
     maxPrice: '',
     amenities: [],
+    rating: '',
   });
 
   const [page, setPage] = useState(1);
@@ -39,7 +92,7 @@ export default function HotelSearchPage() {
   const [pagination, setPagination] = useState(null);
   const limit = 10;
 
-  // === Khởi tạo từ URL (chạy 1 lần khi mount) ===
+  // Đọc URL params khi mount
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const cityParam = queryParams.get('city') || '';
@@ -49,8 +102,8 @@ export default function HotelSearchPage() {
     const minPriceParam = queryParams.get('minPrice') || '';
     const maxPriceParam = queryParams.get('maxPrice') || '';
     const amenitiesParam = queryParams.get('amenities') ? queryParams.get('amenities').split(',') : [];
+    const ratingParam = queryParams.get('rating') || '';
 
-    // Cập nhật local form
     setLocalCity(cityParam);
     setLocalCheckInDate(checkInParam);
     setLocalCheckOutDate(checkOutParam);
@@ -58,8 +111,8 @@ export default function HotelSearchPage() {
     setLocalMinPrice(minPriceParam);
     setLocalMaxPrice(maxPriceParam);
     setLocalAmenities(amenitiesParam);
+    setLocalRating(ratingParam);
 
-    // Cập nhật appliedFilters để trigger search ngay khi mount
     setAppliedFilters({
       city: cityParam,
       checkInDate: checkInParam,
@@ -68,10 +121,10 @@ export default function HotelSearchPage() {
       minPrice: minPriceParam,
       maxPrice: maxPriceParam,
       amenities: amenitiesParam,
+      rating: ratingParam,
     });
   }, []);
 
-  // === Hàm gọi API dựa trên appliedFilters và page ===
   const performSearch = useCallback(async () => {
     setLoading(true);
     const params = {
@@ -84,14 +137,14 @@ export default function HotelSearchPage() {
       ...(appliedFilters.minPrice && { minPrice: appliedFilters.minPrice }),
       ...(appliedFilters.maxPrice && { maxPrice: appliedFilters.maxPrice }),
       ...(appliedFilters.amenities.length && { amenities: appliedFilters.amenities.join(',') }),
+      ...(appliedFilters.rating && { rating: appliedFilters.rating }),
     };
 
     try {
       const data = await searchHotels(params);
       setHotels(data.hotels);
       setPagination(data.pagination);
-
-      // Cập nhật URL
+      // Update URL
       const urlParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
@@ -107,14 +160,12 @@ export default function HotelSearchPage() {
     }
   }, [appliedFilters, page, limit, navigate]);
 
-  // Gọi API mỗi khi appliedFilters hoặc page thay đổi
   useEffect(() => {
     performSearch();
   }, [performSearch]);
 
-  // === Xử lý khi nhấn nút Tìm kiếm ===
   const handleSearchClick = () => {
-    setPage(1); // reset về trang 1 khi áp dụng bộ lọc mới
+    setPage(1);
     setAppliedFilters({
       city: localCity,
       checkInDate: localCheckInDate,
@@ -123,17 +174,16 @@ export default function HotelSearchPage() {
       minPrice: localMinPrice,
       maxPrice: localMaxPrice,
       amenities: localAmenities,
+      rating: localRating,
     });
   };
 
-  // === Xử lý checkbox tiện ích (local) ===
   const toggleAmenity = (amenity) => {
     setLocalAmenities(prev =>
       prev.includes(amenity) ? prev.filter(a => a !== amenity) : [...prev, amenity]
     );
   };
 
-  // === Điều hướng sang trang chi tiết ===
   const goToHotelDetail = (hotelId) => {
     updateHotelBooking({
       hotelId,
@@ -144,7 +194,6 @@ export default function HotelSearchPage() {
     navigate(`/hotels/${hotelId}`);
   };
 
-  // === Phân trang ===
   const goToPage = (newPage) => {
     if (newPage >= 1 && newPage <= (pagination?.totalPages || 1)) {
       setPage(newPage);
@@ -155,65 +204,36 @@ export default function HotelSearchPage() {
     <div className="hotel-search-page">
       <div className="filters-sidebar">
         <h3>Bộ lọc</h3>
-        {/* Nút Tìm kiếm */}
-
         <button className="search-button" onClick={handleSearchClick}>
           Tìm kiếm
         </button>
 
         <div className="filter-group">
           <label>Thành phố</label>
-          <input
-            value={localCity}
-            onChange={e => setLocalCity(e.target.value)}
-            placeholder="VD: Ho Chi Minh"
-          />
+          <input value={localCity} onChange={e => setLocalCity(e.target.value)} placeholder="VD: Ho Chi Minh" />
         </div>
 
         <div className="filter-group">
           <label>Ngày nhận phòng</label>
-          <input
-            type="date"
-            value={localCheckInDate}
-            onChange={e => setLocalCheckInDate(e.target.value)}
-          />
+          <input type="date" value={localCheckInDate} onChange={e => setLocalCheckInDate(e.target.value)} />
         </div>
 
         <div className="filter-group">
           <label>Ngày trả phòng</label>
-          <input
-            type="date"
-            value={localCheckOutDate}
-            onChange={e => setLocalCheckOutDate(e.target.value)}
-          />
+          <input type="date" value={localCheckOutDate} onChange={e => setLocalCheckOutDate(e.target.value)} />
         </div>
 
         <div className="filter-group">
           <label>Số khách</label>
-          <input
-            type="number"
-            min="1"
-            value={localGuests}
-            onChange={e => setLocalGuests(e.target.value)}
-          />
+          <input type="number" min="1" value={localGuests} onChange={e => setLocalGuests(Number(e.target.value))} />
         </div>
 
         <div className="filter-group">
           <label>Khoảng giá (VND)</label>
           <div className="price-range">
-            <input
-              type="number"
-              placeholder="Tối thiểu"
-              value={localMinPrice}
-              onChange={e => setLocalMinPrice(e.target.value)}
-            />
+            <input type="number" placeholder="Tối thiểu" value={localMinPrice} onChange={e => setLocalMinPrice(e.target.value)} />
             <span>-</span>
-            <input
-              type="number"
-              placeholder="Tối đa"
-              value={localMaxPrice}
-              onChange={e => setLocalMaxPrice(e.target.value)}
-            />
+            <input type="number" placeholder="Tối đa" value={localMaxPrice} onChange={e => setLocalMaxPrice(e.target.value)} />
           </div>
         </div>
 
@@ -222,15 +242,23 @@ export default function HotelSearchPage() {
           <div className="amenities-checkbox">
             {AMENITIES_LIST.map(am => (
               <label key={am}>
-                <input
-                  type="checkbox"
-                  checked={localAmenities.includes(am)}
-                  onChange={() => toggleAmenity(am)}
-                />
+                <input type="checkbox" checked={localAmenities.includes(am)} onChange={() => toggleAmenity(am)} />
                 {am}
               </label>
             ))}
           </div>
+        </div>
+
+        <div className="filter-group">
+          <label>Đánh giá sao</label>
+          <select value={localRating} onChange={e => setLocalRating(e.target.value)}>
+            <option value="">Tất cả</option>
+            <option value="5">5 sao</option>
+            <option value="4">4 sao trở lên</option>
+            <option value="3">3 sao trở lên</option>
+            <option value="2">2 sao trở lên</option>
+            <option value="1">1 sao trở lên</option>
+          </select>
         </div>
       </div>
 
@@ -241,15 +269,14 @@ export default function HotelSearchPage() {
         <div className="hotels-grid">
           {hotels.map(hotel => (
             <div key={hotel._id} className="hotel-card" onClick={() => goToHotelDetail(hotel._id)}>
-              <img loading="lazy" src={hotel.image?.[0]?.url || '/placeholder.jpg'} alt={hotel.name} />
+              <img loading="lazy" src={getThumbnailUrl(hotel.image?.[0]?.url)} alt={hotel.name} />
               <div className="hotel-info">
                 <h3>{hotel.name}</h3>
                 <p className="address">{hotel.address?.street}, {hotel.address?.city}</p>
                 <div className="amenities">
-                  {hotel.amenities?.slice(0, 3).map((a, i) => (
-                    <span key={i}>{a}</span>
-                  ))}
+                  {hotel.amenities?.slice(0, 3).map((a, i) => <span key={i}>{a}</span>)}
                 </div>
+                <RatingStars rating={hotel.avgRating} />
                 <p className="price">
                   Giá từ {hotel.minPrice?.toLocaleString()}đ - {hotel.maxPrice?.toLocaleString()}đ
                 </p>

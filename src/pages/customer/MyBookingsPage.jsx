@@ -35,6 +35,37 @@ const formatPrice = (n) => n?.toLocaleString('vi-VN') + '₫';
 const nightCount = (checkIn, checkOut) =>
   Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
 
+// === TẠO THUMBNAIL NHẸ ===
+const getThumbnailUrl = (url) => {
+  if (!url) return '/placeholder.jpg';
+  if (url.includes('res.cloudinary.com')) {
+    return url.replace('/upload/', '/upload/w_300,h_200,c_fill/');
+  }
+  if (url.includes('unsplash.com')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', '300');
+      urlObj.searchParams.set('h', '200');
+      urlObj.searchParams.set('fit', 'crop');
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+  if (url.includes('pexels.com')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', '300');
+      urlObj.searchParams.set('h', '200');
+      urlObj.searchParams.set('fit', 'crop');
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+  return url;
+};
+
 function ReviewModal({ booking, existingReview, onClose, onSubmit }) {
   const [rating, setRating] = useState(existingReview?.rating || 5);
   const [comment, setComment] = useState(existingReview?.comment || '');
@@ -54,7 +85,6 @@ function ReviewModal({ booking, existingReview, onClose, onSubmit }) {
         <h2>{existingReview ? 'Cập nhật đánh giá' : 'Đánh giá khách sạn'}</h2>
         <p style={{ color: '#888', marginBottom: 16 }}>{booking.hotel.name}</p>
 
-        {/* Stars */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
           {[1, 2, 3, 4, 5].map((star) => (
             <span
@@ -95,7 +125,6 @@ function ReviewModal({ booking, existingReview, onClose, onSubmit }) {
   );
 }
 
-// Modal chi tiết booking
 function BookingDetailModal({ booking, onClose }) {
   if (!booking) return null;
   const hotel = booking.hotel;
@@ -181,21 +210,24 @@ function BookingDetailModal({ booking, onClose }) {
   );
 }
 
-// Thẻ booking (card)
 function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isCancelling, isPaying }) {
   const hotel = booking.hotel;
-  const mainImage = hotel.image?.[0]?.url;
+  const mainImage = getThumbnailUrl(hotel.image?.[0]?.url); // ✅ thumbnail nhẹ
   const status = STATUS_CONFIG[booking.status] || {};
   const nights = nightCount(booking.checkInDate, booking.checkOutDate);
   const canCancel = !['canceled', 'checked_in', 'checked_out', 'completed'].includes(booking.status);
   const canPay = booking.status === 'pending' && booking.paymentStatus !== 'paid' &&
     booking.expiredAt && new Date(booking.expiredAt) > new Date();
-  const canReview = booking.status === 'completed';  // ✅ thêm dòng này
+  const canReview = booking.status === 'completed';
 
   return (
     <div className={`booking-card ${booking.status === 'canceled' ? 'canceled' : ''}`}>
       <div className="booking-image">
-        {mainImage ? <img src={mainImage} alt={hotel.name} /> : <div className="no-image">🏨</div>}
+        {mainImage ? (
+          <img loading="lazy" src={mainImage} alt={hotel.name} />
+        ) : (
+          <div className="no-image">🏨</div>
+        )}
         <span className={`status-badge ${status.color}`}>{status.icon} {status.label}</span>
       </div>
       <div className="booking-content">
@@ -236,8 +268,6 @@ function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isC
             <button className="btn-detail" onClick={() => onViewDetail(booking._id)}>Xem chi tiết</button>
             {canCancel && <button className="btn-cancel" onClick={() => onCancel(booking._id)} disabled={isCancelling}>Hủy booking</button>}
             {canPay && <button className="btn-payment" onClick={() => onPayment(booking)} disabled={isPaying}>Thanh toán</button>}
-
-            {/* ✅ Thêm nút đánh giá */}
             {canReview && (
               <button className="btn-review" onClick={() => onReview(booking)}>
                 {booking.reviewStatus ? '⭐ Xem đánh giá' : '✍️ Đánh giá'}
@@ -260,11 +290,10 @@ export default function MyBookingsPage() {
   const [selectedBookingDetail, setSelectedBookingDetail] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
   const [payingId, setPayingId] = useState(null);
-  const [reviewModal, setReviewModal] = useState(null); // { booking, existingReview }
+  const [reviewModal, setReviewModal] = useState(null);
 
   const handleOpenReview = async (booking) => {
     if (booking.reviewStatus) {
-      // Đã đánh giá → fetch review cũ
       try {
         const res = await axiosInstance.get(`/reviews/booking/${booking._id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -281,13 +310,11 @@ export default function MyBookingsPage() {
   const handleSubmitReview = async ({ rating, comment, reviewId }) => {
     try {
       if (reviewId) {
-        // Cập nhật
         await axiosInstance.patch(`/reviews/${reviewId}`, { rating, comment }, {
           headers: { Authorization: `Bearer ${token}` },
         });
         toast.success('Cập nhật đánh giá thành công');
       } else {
-        // Tạo mới
         await axiosInstance.post('/reviews', {
           bookingId: reviewModal.booking._id,
           rating,
@@ -296,7 +323,6 @@ export default function MyBookingsPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         toast.success('Đánh giá thành công');
-        // Cập nhật reviewStatus local không cần refetch
         setBookings(prev => prev.map(b =>
           b._id === reviewModal.booking._id ? { ...b, reviewStatus: true } : b
         ));
@@ -433,7 +459,6 @@ export default function MyBookingsPage() {
       {selectedBookingDetail && (
         <BookingDetailModal booking={selectedBookingDetail} onClose={() => setSelectedBookingDetail(null)} />
       )}
-      
       {reviewModal && (
         <ReviewModal
           booking={reviewModal.booking}
