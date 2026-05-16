@@ -90,7 +90,7 @@ export default function HotelSearchPage() {
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState([]);
   const [pagination, setPagination] = useState(null);
-  const limit = 10;
+  const limit = 12;
 
   // Đọc URL params khi mount
   useEffect(() => {
