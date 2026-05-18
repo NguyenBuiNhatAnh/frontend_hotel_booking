@@ -364,6 +364,19 @@ export default function HotelDetailPage() {
                 <h1>{hotel.name}</h1>
                 <div className="address">{hotel.address?.street}, {hotel.address?.ward}, {hotel.address?.city}</div>
                 <p>{hotel.description}</p>
+
+                {/* Thêm phần hiển thị tiện ích */}
+                {hotel.amenities && hotel.amenities.length > 0 && (
+                    <div className="hotel-amenities">
+                        <strong>Tiện ích nổi bật:</strong>
+                        <div className="amenities-list">
+                            {hotel.amenities.map((item, idx) => (
+                                <span key={idx} className="amenity-tag">{item}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {hotel.image && hotel.image.length > 0 && (
                     <div className="hotel-thumbnails" onClick={() => setShowGallery(true)}>
                         {hotel.image.slice(0, 4).map((img, idx) => (
