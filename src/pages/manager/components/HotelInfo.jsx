@@ -63,7 +63,7 @@ export default function HotelInfo() {
         checkInTime: formData.checkInTime,
         checkOutTime: formData.checkOutTime
       };
-      const res = await axiosInstance.patch('/hotels/me', payload, {
+      const res = await axiosInstance.patch('/hotels/', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHotel(res.data.data);

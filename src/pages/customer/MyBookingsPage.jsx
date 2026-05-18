@@ -194,7 +194,29 @@ function BookingDetailModal({ booking, onClose }) {
           <div className="detail-row"><strong>Số khách:</strong> {booking.guests}</div>
           <div className="detail-row">
             <strong>Trạng thái:</strong>{' '}
-            <span className={`status-badge ${STATUS_CONFIG[booking.status]?.color}`}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '999px',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              backgroundColor:
+                booking.status === 'pending' ? '#fef3c7' :
+                  booking.status === 'confirmed' ? '#dbeafe' :
+                    booking.status === 'checked_in' ? '#d1fae5' :
+                      booking.status === 'checked_out' ? '#ede9fe' :
+                        booking.status === 'completed' ? '#d1fae5' :
+                          booking.status === 'canceled' ? '#fee2e2' : '#f3f4f6',
+              color:
+                booking.status === 'pending' ? '#92400e' :
+                  booking.status === 'confirmed' ? '#1e40af' :
+                    booking.status === 'checked_in' ? '#065f46' :
+                      booking.status === 'checked_out' ? '#4c1d95' :
+                        booking.status === 'completed' ? '#065f46' :
+                          booking.status === 'canceled' ? '#991b1b' : '#1f2937',
+            }}>
               {STATUS_CONFIG[booking.status]?.icon} {STATUS_CONFIG[booking.status]?.label}
             </span>
           </div>
@@ -262,7 +284,7 @@ function BookingDetailModal({ booking, onClose }) {
 // ========== BOOKING CARD ==========
 function BookingCard({ booking, onViewDetail, onCancel, onPayment, onReview, isCancelling, isPaying }) {
   const hotel = booking.hotel;
-  
+
   // Nếu khách sạn bị xóa (null) => hiển thị card lỗi nhẹ
   if (!hotel) {
     return (
