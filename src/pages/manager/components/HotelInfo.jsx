@@ -10,6 +10,10 @@ export default function HotelInfo() {
   const [hotel, setHotel] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [cities, setCities] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [selectedCityCode, setSelectedCityCode] = useState('');
+  const [selectedWardCode, setSelectedWardCode] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     address: { street: '', ward: '', city: '' },
@@ -33,7 +37,11 @@ export default function HotelInfo() {
       // Gán vào form khi chuyển edit mode
       setFormData({
         name: hotelData.name,
-        address: { ...hotelData.address },
+        address: {
+          street: hotelData.address?.street || '',
+          ward: hotelData.address?.ward || '',
+          city: hotelData.address?.city || ''
+        },
         description: hotelData.description,
         amenities: hotelData.amenities || [],
         checkInTime: hotelData.checkInTime,
@@ -50,6 +58,81 @@ export default function HotelInfo() {
     fetchHotel();
   }, []);
 
+  useEffect(() => {
+    axiosInstance.get('/locations/cities')
+      .then(res => setCities(res.data.data))
+      .catch(() => toast.error('Không thể tải danh sách tỉnh/thành'));
+  }, []);
+
+  useEffect(() => {
+    if (!hotel || cities.length === 0 || selectedCityCode) return;
+
+    const currentCity = cities.find(
+      city => city.name === hotel.address?.city
+    );
+
+    if (!currentCity) return;
+
+    setSelectedCityCode(currentCity.codeName);
+
+    axiosInstance.get(`/locations/cities/${currentCity.codeName}/wards`)
+      .then(res => {
+        const wardList = res.data.data || [];
+        const currentWard = wardList.find(
+          ward => ward.name === hotel.address?.ward
+        );
+
+        setWards(wardList);
+        setSelectedWardCode(currentWard?.codeName || '');
+      })
+      .catch(() => setWards([]));
+  }, [hotel, cities, selectedCityCode]);
+
+  const handleCityChange = async (e) => {
+    const cityCodeName = e.target.value;
+    setSelectedCityCode(cityCodeName);
+    setSelectedWardCode('');
+
+    const selectedCity = cities.find(city => city.codeName === cityCodeName);
+
+    setFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        city: selectedCity?.name || prev.address.city,
+        ward: ''
+      }
+    }));
+
+    if (!cityCodeName) {
+      setWards([]);
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.get(`/locations/cities/${cityCodeName}/wards`);
+      setWards(res.data.data || []);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể tải danh sách phường/xã');
+      setWards([]);
+    }
+  };
+
+  const handleWardChange = (e) => {
+    const wardCodeName = e.target.value;
+    setSelectedWardCode(wardCodeName);
+
+    const selectedWard = wards.find(ward => ward.codeName === wardCodeName);
+
+    setFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        ward: selectedWard?.name || prev.address.ward
+      }
+    }));
+  };
+
   // Cập nhật thông tin khách sạn
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -57,7 +140,11 @@ export default function HotelInfo() {
     try {
       const payload = {
         name: formData.name,
-        address: formData.address,
+        address: {
+          street: formData.address.street,
+          ward: formData.address.ward,
+          city: formData.address.city
+        },
         description: formData.description,
         amenities: formData.amenities,
         checkInTime: formData.checkInTime,
@@ -163,18 +250,38 @@ export default function HotelInfo() {
               />
             </div>
             <div className="form-group">
-              <label>Phường/Xã</label>
-              <input
-                value={formData.address.ward}
-                onChange={(e) => setFormData({ ...formData, address: { ...formData.address, ward: e.target.value } })}
-              />
+              <label>Tỉnh / Thành phố</label>
+              <select value={selectedCityCode} onChange={handleCityChange}>
+                <option value={selectedCityCode || ''}>
+                  {formData.address.city || 'Chọn tỉnh/thành phố'}
+                </option>
+                {cities
+                  .filter(city => city.fullName !== formData.address.city && city.name !== formData.address.city)
+                  .map(city => (
+                    <option key={city.codeName} value={city.codeName}>
+                      {city.fullName}
+                    </option>
+                  ))}
+              </select>
             </div>
             <div className="form-group">
-              <label>Thành phố</label>
-              <input
-                value={formData.address.city}
-                onChange={(e) => setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })}
-              />
+              <label>Phường / Xã</label>
+              <select
+                value={selectedWardCode}
+                onChange={handleWardChange}
+                disabled={!selectedCityCode}
+              >
+                <option value={selectedWardCode || ''}>
+                  {formData.address.ward || 'Chọn phường/xã'}
+                </option>
+                {wards
+                  .filter(ward => ward.fullName !== formData.address.ward && ward.name !== formData.address.ward)
+                  .map(ward => (
+                    <option key={ward.codeName} value={ward.codeName}>
+                      {ward.fullName}
+                    </option>
+                  ))}
+              </select>
             </div>
           </div>
           <div className="form-group">
