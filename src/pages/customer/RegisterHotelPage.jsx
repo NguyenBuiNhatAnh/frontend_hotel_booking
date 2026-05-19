@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../services/axiosInstance';
@@ -25,6 +25,10 @@ export default function RegisterHotelPage() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
+  const [cities, setCities] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [selectedCityCode, setSelectedCityCode] = useState('');
+  const [selectedWardCode, setSelectedWardCode] = useState('');
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -37,9 +41,52 @@ export default function RegisterHotelPage() {
   });
   const [images, setImages] = useState([]); // [{ file, preview }]
 
+  useEffect(() => {
+    axiosInstance.get('/locations/cities')
+      .then((res) => setCities(res.data.data || []))
+      .catch(() => toast.error('Không thể tải danh sách tỉnh/thành phố'));
+  }, []);
+
   // ── Form handlers ──────────────────────────────────────────
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleCityChange = async (e) => {
+    const cityCodeName = e.target.value;
+    const selectedCity = cities.find((city) => city.codeName === cityCodeName);
+
+    setSelectedCityCode(cityCodeName);
+    setSelectedWardCode('');
+    setForm((prev) => ({
+      ...prev,
+      city: selectedCity?.name || '',
+      ward: '',
+    }));
+
+    if (!cityCodeName) {
+      setWards([]);
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.get(`/locations/cities/${cityCodeName}/wards`);
+      setWards(res.data.data || []);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể tải danh sách phường/xã');
+      setWards([]);
+    }
+  };
+
+  const handleWardChange = (e) => {
+    const wardCodeName = e.target.value;
+    const selectedWard = wards.find((ward) => ward.codeName === wardCodeName);
+
+    setSelectedWardCode(wardCodeName);
+    setForm((prev) => ({
+      ...prev,
+      ward: selectedWard?.name || '',
+    }));
   };
 
   const toggleAmenity = (value) => {
@@ -203,24 +250,35 @@ export default function RegisterHotelPage() {
 
             <div className="rh-row-2">
               <div className="rh-field">
-                <label>Phường / Xã <span className="required">*</span></label>
-                <input
-                  type="text"
-                  name="ward"
-                  value={form.ward}
-                  onChange={handleChange}
-                  placeholder="VD: Phường 5"
-                />
+                <label>Tỉnh / Thành phố <span className="required">*</span></label>
+                <select
+                  name="city"
+                  value={selectedCityCode}
+                  onChange={handleCityChange}
+                >
+                  <option value="">Chọn tỉnh/thành phố</option>
+                  {cities.map((city) => (
+                    <option key={city.codeName} value={city.codeName}>
+                      {city.fullName}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="rh-field">
-                <label>Thành phố <span className="required">*</span></label>
-                <input
-                  type="text"
-                  name="city"
-                  value={form.city}
-                  onChange={handleChange}
-                  placeholder="VD: Hồ Chí Minh"
-                />
+                <label>Phường / Xã <span className="required">*</span></label>
+                <select
+                  name="ward"
+                  value={selectedWardCode}
+                  onChange={handleWardChange}
+                  disabled={!selectedCityCode}
+                >
+                  <option value="">Chon phường/xã</option>
+                  {wards.map((ward) => (
+                    <option key={ward.codeName} value={ward.codeName}>
+                      {ward.fullName}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
