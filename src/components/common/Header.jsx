@@ -1,20 +1,22 @@
-import { useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+
+import { useAuth } from '../../contexts/AuthContext';
 import './Header.css';
 
 const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showAccountPopup, setShowAccountPopup] = useState(false);
 
-  // Redirect admin ngay khi login
-  // useEffect(() => {
-  //   if (user?.role?.[0] === 'admin') {
-  //     navigate('/admin');
-  //   }
-  // }, [user]);
+  const avatarLetter = user?.email?.[0]?.toUpperCase() || '?';
+  const displayName = user?.firstName || user?.lastName
+    ? `${user.lastName || ''} ${user.firstName || ''}`.trim()
+    : user?.email;
+
+  const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     logout();
@@ -22,31 +24,20 @@ const Header = () => {
     navigate('/auth');
   };
 
-  // Lấy chữ cái đầu của email làm avatar
-  const avatarLetter = user?.email?.[0]?.toUpperCase() || '?';
-
-  const isActive = (path) => location.pathname === path;
-
   const renderRoleButton = () => {
     if (!user) return null;
-    const role = user.role;
 
-    if (role?.includes('hotel_manager')) {
+    if (user.role?.includes('hotel_manager')) {
       return (
         <Link to="/manager">
-          <button className="btn btn-primary">
-            🏨 Quản lý khách sạn
-          </button>
+          <button className="btn btn-primary">Quản lý khách sạn</button>
         </Link>
       );
     }
 
-    // customer
     return (
       <Link to="/register-hotel">
-        <button className="btn btn-ghost">
-          ➕ Đăng ký khách sạn
-        </button>
+        <button className="btn btn-ghost">Đăng ký khách sạn</button>
       </Link>
     );
   };
@@ -54,10 +45,8 @@ const Header = () => {
   return (
     <header className="main-header">
       <div className="container header-content">
-
-        {/* Logo */}
         <div className="logo">
-          <Link title="Trang chủ" to="/">
+          <Link title="Trang chu" to="/">
             <span className="logo-text">
               <span className="accent">Hello</span>
               <span className="base">Booking</span>
@@ -65,7 +54,6 @@ const Header = () => {
           </Link>
         </div>
 
-        {/* Navigation */}
         <nav className="nav-links">
           <Link to="/" className={isActive('/') ? 'active' : ''}>
             Trang chủ
@@ -78,7 +66,6 @@ const Header = () => {
           </Link>
         </nav>
 
-        {/* Auth Buttons */}
         <div className="auth-buttons">
           {user ? (
             <>
@@ -86,14 +73,41 @@ const Header = () => {
 
               <div className="header-divider" />
 
-              <div className="user-info">
+              <button
+                type="button"
+                className="user-info"
+                onClick={() => setShowAccountPopup(true)}
+              >
                 <div className="user-avatar">{avatarLetter}</div>
-                <span className="user-name">{user.email}</span>
-              </div>
+                <span className="user-name">{displayName}</span>
+              </button>
 
               <button className="btn btn-outline" onClick={handleLogout}>
-                🚪 Đăng xuất
+                Đăng xuất
               </button>
+
+              {showAccountPopup && (
+                <div
+                  className="account-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  onMouseDown={() => setShowAccountPopup(false)}
+                >
+                  <div className="account-backdrop" />
+                  <div className="account-menu" onMouseDown={(e) => e.stopPropagation()}>
+                    <div className="account-menu-header">
+                      <strong>{displayName || 'Tai khoan'}</strong>
+                      <span>{user.email}</span>
+                    </div>
+                    <Link to="/account/profile" onClick={() => setShowAccountPopup(false)}>
+                      Cập nhật thông tin
+                    </Link>
+                    <Link to="/account/change-password" onClick={() => setShowAccountPopup(false)}>
+                      Đổi mật khẩu
+                    </Link>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <Link to="/auth">
@@ -101,7 +115,6 @@ const Header = () => {
             </Link>
           )}
         </div>
-
       </div>
     </header>
   );

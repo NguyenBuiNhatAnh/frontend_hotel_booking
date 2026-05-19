@@ -15,6 +15,8 @@ import HotelDetailPage from './pages/customer/HotelDetailPage';
 import './index.css';
 import PaymentSuccess from './pages/customer/PaymentSuccess.jsx';
 import PaymentFailed from './pages/customer/PaymentFailed.jsx';
+import AccountProfilePage from './pages/common/AccountProfilePage.jsx';
+import ChangePasswordPage from './pages/common/ChangePasswordPage.jsx';
 
 function Layout() {
   return (
@@ -47,6 +49,8 @@ function App() {
         <Route path="/hotels/:hotelId" element={<HotelDetailPage />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failed" element={<PaymentFailed />} />
+        <Route path="/account/profile" element={<AccountProfilePage />} />
+        <Route path="/account/change-password" element={<ChangePasswordPage />} />
       </Route>
       {/* Routes KHÔNG có Header & Footer */}
       <Route path="/admin/*" element={<AdminHotelsPage />} />
