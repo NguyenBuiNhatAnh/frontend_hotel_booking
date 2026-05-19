@@ -8,7 +8,7 @@ const Footer = () => {
         
         {/* Cột 1: Thông tin chung */}
         <div>
-          <h3 style={{ color: 'var(--primary-light)' }}>LUXURYSTAY</h3>
+          <h3 style={{ color: 'var(--primary-light)' }}>HelloBooking</h3>
           <p style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>
             Hệ thống đặt phòng khách sạn trực tuyến hàng đầu, mang lại trải nghiệm tuyệt vời cho kỳ nghỉ của bạn.
           </p>
@@ -38,7 +38,7 @@ const Footer = () => {
         <div>
           <h4>Liên hệ</h4>
           <p style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>
-            Email: support@luxurystay.com<br/>
+            Email: support@hellobooking.com<br/>
             Hotline: 1900 1234<br/>
             Địa chỉ: Quận 1, TP. Hồ Chí Minh
           </p>
