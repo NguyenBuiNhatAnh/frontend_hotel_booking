@@ -33,3 +33,29 @@ export const loginUser = async (userData) => {
     );
   }
 };
+
+export const forgotPassword = async (data) => {
+  try {
+    const response = await axiosInstance.post('/auth/forgot-password', data);
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: 'Gửi OTP thất bại',
+      }
+    );
+  }
+};
+
+export const resetPassword = async (data) => {
+  try {
+    const response = await axiosInstance.post('/auth/reset-password', data);
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data || {
+        message: 'Đặt lại mật khẩu thất bại',
+      }
+    );
+  }
+};

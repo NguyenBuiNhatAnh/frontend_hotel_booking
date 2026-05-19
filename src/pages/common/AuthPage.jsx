@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import './AuthPage.css';
 import { toast } from 'react-toastify';
 
-import { registerUser, loginUser } from '../../services/authServices';
+import { forgotPassword, loginUser, registerUser, resetPassword } from '../../services/authServices';
 import { useAuth } from '../../contexts/AuthContext';
 
 function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState('email');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -17,6 +21,7 @@ function AuthPage() {
     lastName: '',
     phone: '',
     email: '',
+    otp: '',
     password: '',
     confirmPassword: '',
   });
@@ -27,6 +32,7 @@ function AuthPage() {
       lastName: '',
       phone: '',
       email: '',
+      otp: '',
       password: '',
       confirmPassword: '',
     });
@@ -39,8 +45,21 @@ function AuthPage() {
     });
   };
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+
+    const timerId = setTimeout(() => {
+      setResendCooldown((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+
+    return () => clearTimeout(timerId);
+  }, [resendCooldown]);
+
   const switchTab = (toLogin) => {
     setIsLogin(toLogin);
+    setIsForgotPassword(false);
+    setForgotStep('email');
+    setResendCooldown(0);
     clearForm();
   };
 
@@ -74,6 +93,81 @@ function AuthPage() {
     } catch (error) {
       console.error(error);
       toast.error(error.message);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+
+    if (!formData.email) {
+      toast.error('Vui lòng nhập email để khôi phục mật khẩu!');
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      const res = await forgotPassword({ email: formData.email });
+      setForgotStep('reset');
+      setResendCooldown(res.data?.resendAfterSeconds || 60);
+      toast.success('OTP đã được gửi đến email của bạn!');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || forgotLoading) return;
+
+    if (!formData.email) {
+      toast.error('Vui lòng nhập email để gửi lại OTP!');
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      const res = await forgotPassword({ email: formData.email });
+      setResendCooldown(res.data?.resendAfterSeconds || 60);
+      toast.success('OTP mới đã được gửi đến email!');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+
+    if (!formData.email || !formData.otp || !formData.password || !formData.confirmPassword) {
+      toast.error('Vui lòng nhập đầy đủ thông tin!');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp!');
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      await resetPassword({
+        email: formData.email,
+        otp: formData.otp,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
+
+      toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập.');
+      clearForm();
+      setIsForgotPassword(false);
+      setForgotStep('email');
+      setResendCooldown(0);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -146,7 +240,7 @@ function AuthPage() {
             </button>
           </div>
 
-          {isLogin ? (
+          {isLogin && !isForgotPassword ? (
             <form className="auth-form" onSubmit={handleLogin}>
               <h2>Chào mừng trở lại 👋</h2>
 
@@ -172,8 +266,105 @@ function AuthPage() {
                 />
               </div>
 
+              <div className="auth-form-extra">
+                <button
+                  type="button"
+                  className="forgot-password-link"
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setFormData((prev) => ({ ...prev, password: '' }));
+                  }}
+                >
+                  Quên mật khẩu?
+                </button>
+              </div>
+
               <button type="submit" className="btn btn-primary auth-btn">
                 Đăng nhập
+              </button>
+            </form>
+          ) : isLogin && isForgotPassword ? (
+            <form
+              className="auth-form"
+              onSubmit={forgotStep === 'email' ? handleForgotPassword : handleResetPassword}
+            >
+              <h2>Khôi phục mật khẩu</h2>
+              <p className="auth-helper-text">
+                Nhập email tài khoản của bạn để tiếp tục khôi phục mật khẩu.
+              </p>
+
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Nhập email..."
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {forgotStep === 'reset' && (
+                <>
+                  <div className="form-group">
+                    <label>Mã OTP</label>
+                    <input
+                      type="text"
+                      name="otp"
+                      placeholder="Nhập 6 số OTP..."
+                      value={formData.otp}
+                      onChange={handleChange}
+                      maxLength="6"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Mật khẩu mới</label>
+                    <input
+                      type="password"
+                      name="password"
+                      placeholder="Nhập mật khẩu mới..."
+                      value={formData.password}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Xác nhận mật khẩu</label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      placeholder="Nhập lại mật khẩu..."
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </>
+              )}
+
+              <button type="submit" className="btn btn-primary auth-btn" disabled={forgotLoading}>
+                {forgotLoading
+                  ? (forgotStep === 'email' ? 'Đang gửi...' : 'Đang đặt lại...')
+                  : (forgotStep === 'email' ? 'Gửi OTP' : 'Đặt lại mật khẩu')}
+              </button>
+
+              {forgotStep === 'reset' && (
+                <button
+                  type="button"
+                  className="resend-otp-btn"
+                  onClick={handleResendOtp}
+                  disabled={forgotLoading || resendCooldown > 0}
+                >
+                  {resendCooldown > 0 ? `Gửi lại OTP sau ${resendCooldown}s` : 'Gửi lại OTP'}
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="back-login-btn"
+                onClick={() => setIsForgotPassword(false)}
+              >
+                Quay lại đăng nhập
               </button>
             </form>
           ) : (
