@@ -214,7 +214,7 @@ function AuthPage() {
         <div className="auth-left">
           <div>
             <span className="auth-badge">✈️ Travel Booking</span>
-            <h1>Khám phá thế giới cùng chúng tôi</h1>
+            <h1>Khám phá Việt Nam cùng chúng tôi</h1>
             <p>Đặt khách sạn nhanh chóng, an toàn và tiện lợi cho mọi chuyến đi.</p>
           </div>
         </div>
