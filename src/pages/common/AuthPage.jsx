@@ -83,7 +83,7 @@ function AuthPage() {
       login(res.data.user, res.data.token);
 
       if (res.data.user?.role?.[0] === 'admin') {
-        navigate('/admin');
+        navigate('/admin/dashboard');
         toast.success('Đăng nhập thành công!');
         return;
       }

@@ -193,7 +193,8 @@ export default function AdminUsersPage() {
           <span className="admin-tag">Admin</span>
         </div>
         <nav className="sidebar-nav">
-          <a href="/admin" className="sidebar-link">🏨 Khách sạn</a>
+          <a href="/admin/dashboard" className="sidebar-link">📊 Dashboard</a>
+          <a href="/admin/hotels" className="sidebar-link">🏨 Khách sạn</a>
           <a href="/admin/users" className="sidebar-link active">👥 Người dùng</a>
         </nav>
       </aside>

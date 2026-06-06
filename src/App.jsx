@@ -6,6 +6,7 @@ import AuthPage from './pages/common/AuthPage.jsx';
 import HomePage from './pages/common/HomePage.jsx';
 import MyBookingsPage from './pages/customer/MyBookingsPage.jsx';
 import RegisterHotelPage from './pages/customer/RegisterHotelPage.jsx';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
 import AdminHotelsPage from './pages/admin/AdminHotelsPage.jsx';
 import AdminUsersPage from './pages/admin/AdminUsersPage.jsx';
 import ManagerDashboard from './pages/manager/ManagerDashboard.jsx';
@@ -53,7 +54,8 @@ function App() {
         <Route path="/account/change-password" element={<ChangePasswordPage />} />
       </Route>
       {/* Routes KHÔNG có Header & Footer */}
-      <Route path="/admin/*" element={<AdminHotelsPage />} />
+      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+      <Route path="/admin/hotels" element={<AdminHotelsPage />} />
       <Route path="/admin/users" element={<AdminUsersPage />} />
     </Routes>
   );

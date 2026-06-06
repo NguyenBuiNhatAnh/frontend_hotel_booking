@@ -328,7 +328,8 @@ export default function AdminHotelsPage() {
           <span className="admin-tag">Admin</span>
         </div>
         <nav className="sidebar-nav">
-          <a href="/admin" className="sidebar-link active">🏨 Khách sạn</a>
+          <a href="/admin/dashboard" className="sidebar-link">📊 Dashboard</a>
+          <a href="/admin/hotels" className="sidebar-link active">🏨 Khách sạn</a>
           <a href="/admin/users" className="sidebar-link">👥 Người dùng</a>
         </nav>
       </aside>
