@@ -1,7 +1,7 @@
 // pages/manager/ManagerDashboard.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import HotelInfo from './components/HotelInfo';
 import RoomsManager from './components/RoomsManager';
 import BookingsManager from './components/BookingsManager';
@@ -20,7 +20,15 @@ const TABS = [
 export default function ManagerDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('hotel');
+
+  useEffect(() => {
+    const tab = new URLSearchParams(location.search).get('tab');
+    if (TABS.some((item) => item.key === tab)) {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
 
   const handleLogout = () => {
     logout();
@@ -41,7 +49,10 @@ export default function ManagerDashboard() {
             <button
               key={tab.key}
               className={`sidebar-nav-item ${activeTab === tab.key ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key);
+                navigate('/manager', { replace: true });
+              }}
             >
               {tab.label}
             </button>
