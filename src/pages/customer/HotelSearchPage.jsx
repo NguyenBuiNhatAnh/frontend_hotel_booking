@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { searchHotels } from '../../services/hotelService';
+import axiosInstance from '../../services/axiosInstance';
 import { useHotel } from '../../contexts/HotelContext';
 import './HotelSearchPage.css';
 
@@ -88,9 +89,34 @@ export default function HotelSearchPage() {
 
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [cities, setCities] = useState([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
   const [hotels, setHotels] = useState([]);
   const [pagination, setPagination] = useState(null);
   const limit = 12;
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchCities = async () => {
+      setCitiesLoading(true);
+      try {
+        const res = await axiosInstance.get('/locations/cities');
+        if (mounted) setCities(res.data.data || []);
+      } catch (err) {
+        console.error('Failed to load cities', err);
+        if (mounted) setCities([]);
+      } finally {
+        if (mounted) setCitiesLoading(false);
+      }
+    };
+
+    fetchCities();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Đọc URL params khi mount
   useEffect(() => {
@@ -210,7 +236,14 @@ export default function HotelSearchPage() {
 
         <div className="filter-group">
           <label>Thành phố</label>
-          <input value={localCity} onChange={e => setLocalCity(e.target.value)} placeholder="VD: Ho Chi Minh" />
+          <select value={localCity} onChange={e => setLocalCity(e.target.value)} disabled={citiesLoading}>
+            <option value="">{citiesLoading ? 'Đang tải tỉnh/thành...' : 'Tất cả tỉnh/thành'}</option>
+            {cities.map(city => (
+              <option key={city.codeName} value={city.name}>
+                {city.fullName}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="filter-group">
@@ -272,7 +305,7 @@ export default function HotelSearchPage() {
               <img loading="lazy" src={getThumbnailUrl(hotel.image?.[0]?.url)} alt={hotel.name} />
               <div className="hotel-info">
                 <h3>{hotel.name}</h3>
-                <p className="address">{hotel.address?.street}, {hotel.address?.city}</p>
+                <p className="address">{hotel.address?.street}, {hotel.address?.ward}, {hotel.address?.city}</p>
                 <div className="amenities">
                   {hotel.amenities?.slice(0, 3).map((a, i) => <span key={i}>{a}</span>)}
                 </div>
